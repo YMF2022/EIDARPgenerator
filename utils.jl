@@ -225,20 +225,3 @@ function graph(ts_coords, c_array, n_c, opr_width, folder; flag = 1)
     display(image)
     savefig(image, "$folder/fig.png")
 end
-
-function save_network(folder::String, ts_tt::Array, ts_arcs::Dict)
-    # export network OD Matrix
-    h5open("$folder/OD-3D.h5", "w") do file
-        write(file, "OD", ts_tt)
-    end
-
-    #export OD pairs
-    open("$folder/OD-pairs.json", "w") do f
-        json_string = JSON.json(ts_arcs)
-        JSON.print(f, json_string)
-    end
-end
-
-# retrive data
-# jdata = JSON.parsefile("cross/c10/OD-pairs.json")
-# jd = JSON.parse(jdata)

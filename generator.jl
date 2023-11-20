@@ -31,6 +31,22 @@ params = Parameters(
 )
 
 """
+generate(n_c::Int64, params::Parameters; upperfolder = "cross/", replace = 1)
+
+Generate synthetic data for a transportation system simulation.
+
+# Arguments
+- `n_c::Int64`: Number of customers.
+- `params::Parameters`: A structure containing parameters for EIDARP.
+- `upperfolder::String`: The parent folder for storing generated data. Default is "cross/".
+- `replace::Int`: A flag indicating whether to replace existing instance (1) or not (0). Default is 1.
+
+# Returns
+- The function generates and saves synthetic data for a transportation system simulation. It doesn't return any value.
+
+# Examples
+```julia
+generate(10, my_params)
 """
 function generate(n_c::Int64, params::Parameters; upperfolder = "cross/", replace = 1)
     folder_name = foldername(upperfolder, length(params.ts_network), n_c, replace)
@@ -43,7 +59,7 @@ function generate(n_c::Int64, params::Parameters; upperfolder = "cross/", replac
     cgr_coords = generate_charger(ts_coords, params.α, folder_name)
     generate_bus(n_c, params.bus_types, folder_name)
     depot_other(params, max_duration, folder_name)
-    # graph(ts_coords, cus_array, n_c, opr_width, folder_name, flag = 0)
+    graph(ts_coords, cus_array, n_c, opr_width, folder_name, flag = 0)
 end
 
 # generate(10, params)
