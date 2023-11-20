@@ -30,7 +30,8 @@ params = Parameters(
     0.5             # service time at each stop
 )
 
-
+"""
+"""
 function generate(n_c::Int64, params::Parameters; upperfolder = "cross/", replace = 1)
     folder_name = foldername(upperfolder, length(params.ts_network), n_c, replace)
     Random.seed!(n_c)
@@ -44,4 +45,5 @@ function generate(n_c::Int64, params::Parameters; upperfolder = "cross/", replac
     depot_other(params, max_duration, folder_name)
     # graph(ts_coords, cus_array, n_c, opr_width, folder_name, flag = 0)
 end
-|
+
+# generate(10, params)
