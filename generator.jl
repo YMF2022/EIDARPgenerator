@@ -6,7 +6,8 @@ bus_types = [
     Bustype(
     40.0, # bus speed
     10, # bus capacity
-    0.226 # energy consumption rate
+    0.226, # kWh/km Volswagen ID.BUZZ https://en.wikipedia.org/wiki/Volkswagen_ID._Buzz # needs to be changed
+    77, # max battery capacity
     )
 ]
 
@@ -21,29 +22,26 @@ params = Parameters(
     1.0,            # maximum walking distance for each customer
     10.0,           # start time of operational period
     11.0,           # end time of operational period
-    [(0, 0)],       # location of depots
+    [[0, 0], [5,0]],       # location of depots
     0.085,          # average walking speed of each customer in km/h (https://en.wikipedia.org/wiki/Preferred_walking_speed)
     1.8,            # detour index for each customer
-    3               # number of dummies at each charger
+    3,              # number of dummies at each charger
+    0.83,           # charging speed in kWh/min
+    0.5             # service time at each stop
 )
 
-# Create a folder name
-function foldername(upperfolder::String, n_c::Int64)
-    i = 0
-    folder_name = upperfolder * "c$n_c"
-    if !isdir(folder_name)
-        mkdir(folder_name)
-    else
-        target_word = "c$n_c"
-        items = readdir("cross/")
-        matchfolders = filter(item -> isdir(joinpath(upperfolder, item)) && contains(lowercase(item), lowercase(target_word)), items) 
-        i = parse(Int, matchfolders[end][end]) + 1
-        folder_name = folder_name * "-$i"
-        mkdir(folder_name)
-    end
-end
 
+function generate(n_c::Int64, params::Parameters; upperfolder = "cross/", replace = 1)
+    folder_name = foldername(upperfolder, length(params.ts_network), n_c, replace)
+    Random.seed!(n_c)
 
-function main(n_c::Int64, params::Parameters, upperfolder = "cross/")
-    print("nothing")
+    ts_coords, opr_len, opr_width = generate_trainstop(params.ts_network, params.max_opr_radius, folder_name)
+    @info("Operational area: $opr_len*$opr_width km")
+    max_duration = generate_timetable(params.ts_network, params.start_t, params.end_t, folder_name)
+    cus_array = generate_customer(n_c, opr_len, opr_width, max_duration, params.detour_factor, params.bus_types[1].v_bus/60, folder_name)
+    cgr_coords = generate_charger(ts_coords, params.α, folder_name)
+    generate_bus(n_c, params.bus_types, folder_name)
+    depot_other(params, max_duration, folder_name)
+    # graph(ts_coords, cus_array, n_c, opr_width, folder_name, flag = 0)
 end
+|

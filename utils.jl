@@ -5,175 +5,46 @@ using HDF5
 using Distributions
 using DelimitedFiles
 
-function generate_timetable(n_ts, start_t, end_t, freq, tt, dt, folder; shift = 5.0)
+function generate_timetable(ts_lines::Vector{Transitline}, start_t::Float64, end_t::Float64, folder::String; shift = 5.0)
     # sym = collect('A':'Z')
-    n_ts_each = n_ts ÷ 2
+    tt = 5 # need to be changed as dist/v_mass
     max_duration = 0
-    for l in 1:2
-        # train_names = split(String(sym[1+(l-1)*n_ts_each:n_ts_each*l]),"")
-        train_names = string.(collect((l-1)*n_ts_each+1:(l-1)*n_ts_each+n_ts_each))
-        push!(train_names,"Direction")
-        train_names = reshape(train_names,1,:)
-        n_dep = Int(2*(end_t - start_t)*60 ÷ freq)
-        timetable = Array{Float64}(undef, n_dep, n_ts_each+1)
+    ts_end = 1
+    for (l, line) in enumerate(ts_lines)
+        header = [ts_end:ts_end+line.n_ts-1; "Direction"]
+        n_dep = Int(2*(end_t - start_t)*60 ÷ line.freq)
+        timetable = Array{Float64}(undef, n_dep, line.n_ts+1)
         last_0 = 20.0 + 3*(l-1) # direction 0: right to left/down
         last_1 = last_0 + shift # direction 1: left to right /up
         for dep in 1:n_dep
             if isinteger(dep/2)
-                timetable[dep, n_ts_each+1] = 0
-                for ts in n_ts_each:-1:1
-                    timetable[dep,ts] = last_1 + abs(ts-3)*(tt+dt)
+                timetable[dep, line.n_ts+1] = 0
+                for ts in line.n_ts:-1:1
+                    timetable[dep,ts] = last_1 + abs(ts-line.n_ts)*(tt+line.dt)
                 end
-                last_1 += freq
+                last_1 += line.freq
             else
-                timetable[dep, n_ts_each+1] = 1
-                for ts in 1:n_ts_each
-                    timetable[dep,ts] = last_0 + (ts-1)*(tt+dt)
+                timetable[dep, line.n_ts+1] = 1
+                for ts in 1:line.n_ts
+                    timetable[dep,ts] = last_0 + (ts-1)*(tt+line.dt)
                 end
-                last_0 += freq
+                last_0 += line.freq
+            end
+            open("$folder/timetable_line$l.csv", "w") do f
+                writedlm(f, reshape(header, 1, :), ",")
+                writedlm(f, timetable, ",")
+            end
+
+            if maximum(timetable) > max_duration
+                max_duration = maximum(timetable)
             end
         end
-        open("$folder/timetable_line$l.csv", "w") do f
-            writedlm(f, train_names, ",")
-            writedlm(f, timetable, ",")
-        end
-        # println(maximum(timetable))
-        if maximum(timetable) > max_duration
-            max_duration = maximum(timetable)
-        end
+        ts_end = ts_end + line.n_ts
     end
     return max_duration
 end
 
-function nearest(t::Float64, m::Matrix{Float64}, trans::Int64, direct::Int64)
-    dep = m[:,trans] # find departure time for transfer stop
-    trans_t = dep .- t
-    s = sortperm(trans_t)
-    for d in s
-        if trans_t[d] > 0 && trans_t[d] < 10 && m[d,end]==direct
-            return d, trans_t[d]
-        end
-    end
-    return 0, 0 
-end
-
-function generate_network(folder::String, n_ts::Int64, dt::Float64)
-    m1 = readdlm("$folder/timetable_line1.csv",',')
-    m2 = readdlm("$folder/timetable_line2.csv",',')
-    m1 = Float64.(m1[2:end,:])
-    m2 = Float64.(m2[2:end,:])
-    n_ts_each = n_ts ÷ 2 # two lines have the same number of transit stops
-    # Combine timetable. Only possible when two lines have the same No. stops&direction&departures
-    global m = hcat(m1[:,1:n_ts_each], m2) 
-    n_dep = size(m)[1]
-    ts_nodes = collect(1:n_ts*n_dep)
-    ts_nodes_struct = permutedims(reshape(ts_nodes,(n_ts,n_dep)))
-    trans_1 = n_ts_each ÷ 2 + 1 # the transfer stop at line 1
-    trans_2 = trans_1 + n_ts_each # the transfer stop at line 2
-    ts_tt = 1000 .* ones(n_ts, n_ts, n_dep) # travel time 3D
-    ts_tt_2D = 1000 .* ones(n_ts*n_dep, n_ts*n_dep) # Travel time 2D
-    ts_network_arcs = Dict{Int64,Vector{Tuple}}()
-    ts_network_arcs_2D = Dict{Int64,Vector{Tuple}}()
-    ts_dep_time = 1000 .* ones(n_ts*n_dep, n_ts*n_dep) # departure time
-    ts_arr_time = 1000 .* ones(n_ts*n_dep, n_ts*n_dep) # arrival time
-    for d = 1:n_dep
-        ts_network_arcs[d] = []
-        ts_network_arcs_2D[d] = []
-        direct = m[d,end]
-        # iseven(d) ? direct = 0 : direct = 1
-        for ts1 in 1:n_ts
-            ts12d = ts_nodes_struct[d,ts1]
-            for ts2 in 1:n_ts
-                if ts1 == ts2 || (ts1==trans_1 && ts2==trans_2) # same stops
-                    continue
-                elseif ts1 == trans_1 && ts2 > n_ts_each # trans_1 to the line 2
-                    continue
-                elseif ts1 <= n_ts_each && ts2 == trans_2 # line1 to trans_2
-                    continue
-                elseif ts1 > n_ts_each && ts2 == trans_1 # line2 to trans_1
-                    continue
-                elseif ts1 == trans_2 && ts2 <= n_ts_each # trans_2 to line 1
-                    continue
-                end
-
-                if ts1 <= n_ts_each && ts2 <= n_ts_each # ts1, ts2 are in line 1
-                    ts22d = ts_nodes_struct[d,ts2]
-                    if ts2 > ts1 && direct == 1
-                        ts_tt[ts1,ts2,d] = m[d,ts2] - m[d,ts1] - dt # dt is dwel_time
-                        ts_tt_2D[ts12d,ts22d] = ts_tt[ts1,ts2,d] # travel time
-                        ts_arr_time[ts12d,ts22d] = m[d,ts2] - dt # arrival time
-                        ts_dep_time[ts12d,ts22d] = m[d,ts1] # departure time
-                        push!(ts_network_arcs_2D[d], (ts12d,ts22d))
-                        push!(ts_network_arcs[d], (ts1,ts2))  
-                    elseif ts2 < ts1 && direct == 0
-                        ts_tt[ts1,ts2,d] = m[d,ts2] - m[d,ts1] - dt # dt is dwel_time
-                        ts_tt_2D[ts12d,ts22d] = ts_tt[ts1,ts2,d] # travel time
-                        ts_arr_time[ts12d,ts22d] = m[d,ts2] - dt # arrival time
-                        ts_dep_time[ts12d,ts22d] = m[d,ts1] # departure time
-                        push!(ts_network_arcs_2D[d], (ts12d,ts22d))
-                        push!(ts_network_arcs[d], (ts1,ts2))
-                    end 
-                elseif ts1 <= n_ts_each && ts2 > n_ts_each # ts1 in line1 => ts2 in line 2
-                    if m[d,trans_1] < m[d,ts1] # already pass the transfer stop
-                        continue
-                    end
-                    # @info "ts1 and ts2" (ts1,ts2)
-                    ts2 - trans_2 > 0 ? direct2 = 1 : direct2 = 0 # get line2 direction
-                    t1 = m[d,trans_1] - dt # get the arrival time at trans_1 at departure d
-                    # println("direct $direct2 and t1 $t1")
-                    d2, transfer_t = nearest(t1, m, trans_2, direct2)  # find the nearest departure time at line2
-                    # println(d2)                   
-                    if d2 != 0 # a transfer is found
-                        ts22d = ts_nodes_struct[d2,ts2]
-                        ts_tt[ts1,ts2,d] = m[d2,ts2] - m[d,ts1] - dt # dt is dwel_time
-                        ts_tt_2D[ts12d,ts22d] = ts_tt[ts1,ts2,d] # travel time
-                        ts_arr_time[ts12d,ts22d] = m[d2,ts2] - dt # arrival time
-                        ts_dep_time[ts12d,ts22d] = m[d,ts1] # departure time
-                        push!(ts_network_arcs_2D[d], (ts12d,ts22d))
-                        push!(ts_network_arcs[d], (ts1,ts2))
-                    end
-                elseif ts1 > n_ts_each && ts2 <= n_ts_each # ts1 in line2 => ts2 in line1
-                    if m[d,trans_2] < m[d,ts1] # already pass the transfer stop
-                        continue
-                    end
-                    @info "ts1 and ts2" (ts1,ts2)
-                    ts2 - trans_1 > 0 ? direct1 = 1 : direct1 = 0 # get line1 direction
-                    t2 = m[d,trans_2] - dt # get the arrival time at trans_2 at dparture d
-                    d1, transfer_t = nearest(t2, m, trans_1, direct1) # find the nearest departure time at line1
-                    if d1 != 0
-                        ts22d = ts_nodes_struct[d1,ts2]
-                        ts_tt[ts1,ts2,d] = m[d1,ts2] - m[d,ts1] - dt 
-                        ts_tt_2D[ts12d,ts22d] = ts_tt[ts1,ts2,d] # travel time
-                        ts_arr_time[ts12d,ts22d] = m[d1,ts2] - dt # arrival time
-                        ts_dep_time[ts12d,ts22d] = m[d,ts1] # departure time
-                        push!(ts_network_arcs_2D[d], (ts12d,ts22d))
-                        push!(ts_network_arcs[d], (ts1,ts2))
-                    end
-                else # ts1 and ts2 are both in line 2
-                    ts22d = ts_nodes_struct[d,ts2]
-                    if ts2 > ts1 && direct == 1
-                        ts_tt[ts1,ts2,d] = m[d,ts2] - m[d,ts1] - dt # dt is dwel_time
-                        ts_tt_2D[ts12d,ts22d] = ts_tt[ts1,ts2,d] # travel time
-                        ts_arr_time[ts12d,ts22d] = m[d,ts2] - dt # arrival time
-                        ts_dep_time[ts12d,ts22d] = m[d,ts1] # departure time
-                        push!(ts_network_arcs_2D[d], (ts12d,ts22d))
-                        push!(ts_network_arcs[d], (ts1,ts2))
-                    elseif ts2 < ts1 && direct == 0
-                        ts_tt[ts1,ts2,d] = m[d,ts2] - m[d,ts1] - dt # dt is dwel_time
-                        ts_tt_2D[ts12d,ts22d] = ts_tt[ts1,ts2,d] # travel time
-                        ts_arr_time[ts12d,ts22d] = m[d,ts2] - dt # arrival time
-                        ts_dep_time[ts12d,ts22d] = m[d,ts1] # departure time
-                        push!(ts_network_arcs_2D[d], (ts12d,ts22d))
-                        push!(ts_network_arcs[d], (ts1,ts2))
-                    end
-                end
-            end
-        end
-    end
-    return ts_tt, ts_network_arcs, ts_tt_2D, ts_arr_time, ts_dep_time, ts_network_arcs_2D
-end
-
-function generate_customer(n_c, opr_len, opr_width, v_bus, operation_time, folder ; detour_factor = 1.8)
+function generate_customer(n_c, opr_len, opr_width, operation_time, detour_factor, v_bus, folder)
     cus_array = Array{Float64}(undef, n_c, 8)
     opr_width_half = opr_width/2 - 1
     opr_len_half = opr_len/2 - 1
@@ -224,40 +95,96 @@ function generate_customer(n_c, opr_len, opr_width, v_bus, operation_time, folde
     return cus_array
 end
 
-function generate_trainstop(n_ts::Int64, dist_ts::Float64, n_line::Int64, folder::String)
-    ts_coords = Array{Float64}(undef, n_ts, 3)
-    n_ts_each = n_ts ÷ 2 # number of transit stops for each line
-    trans_ts = n_ts_each ÷ 2 + 1 # the transfer stop
-    # Line 1
-    ts_coords[1:n_ts_each,1] .= [x for x in -((n_ts_each-1)*dist_ts/2):dist_ts:((n_ts_each-1)*dist_ts/2)]
-    ts_coords[1:n_ts_each,2] .= zeros(n_ts_each)
-    ts_coords[1:n_ts_each,3] .= 1
-    # Line 2
-    ts_coords[n_ts_each+1:n_ts,1] = zeros(n_ts_each)
-    ts_coords[n_ts_each+1:n_ts,2] = [x for x in -((n_ts_each-1)*dist_ts/2):dist_ts:((n_ts_each-1)*dist_ts/2)]
-    ts_coords[n_ts_each+1:n_ts,3] .= 2
+function generate_trainstop(ts_lines::Vector{Transitline}, max_opr_radius::Float64, folder::String)
+    n_ts = sum(get_ts_number.(ts_lines))
+    ts_coords = Array{Any}(undef, n_ts, 4) # create coordinates Array
+    opr_len, opr_width = 0.0, 0.0 # initilize operational area length and width
+    last = 1
+    for (i,line) in enumerate(ts_lines) 
+        trans = line.ts_transfer
+        dist_ts = line.dist_ts
+        n_ts_line = line.n_ts
+        if !iseven(i) # Horizontal line
+            ts_coords[last:n_ts_line+last-1,1] .= [x for x in -((n_ts_line-1)*dist_ts/2):dist_ts:((n_ts_line-1)*dist_ts/2)]
+            ts_coords[last:n_ts_line+last-1,2] .= zeros(n_ts_line)
+            opr_width = max(opr_width, 2 * max_opr_radius + (n_ts_line-1)*dist_ts)
+        else # Vertical line
+            ts_coords[last:n_ts_line+last-1,1] .= zeros(n_ts_line)
+            ts_coords[last:n_ts_line+last-1,2] .= [x for x in -((n_ts_line-1)*dist_ts/2):dist_ts:((n_ts_line-1)*dist_ts/2)]
+            opr_len = max(opr_len, 2 * max_opr_radius + (n_ts_line-1)*dist_ts)
+        end
+        ts_coords[last:n_ts_line+last-1,3] .= i
+        ts_coords[last:n_ts_line+last-1,4] = [i == trans ? 1 : 0 for i in 1:n_ts_line]
+
+        last = last + n_ts_line
+    end
+
     open("$folder/trainStops.csv", "w") do f
-        writedlm(f, ["x" "y" "line"], ",")
+        writedlm(f, ["x" "y" "line" "transfer"], ",")
         writedlm(f, ts_coords, ",")
     end
-    return ts_coords
+
+    println(ts_coords)
+    return ts_coords, opr_len, opr_width
 end
 
-function generate_charger(ts_coords::Array{Float64}, cgr_speed::Float64, folder::String)
-    # cgr_info = Array{Float64}(undef, size(ts_coords)[1], 3)
-    # cgr_info[:,1:2] = ts_coords[:,1:2]
-    # cgr_info[:,3] .= cgr_speed
-    # open("$folder/chargers.csv", "w") do f
-    #     writedlm(f, ["x" "y" "charging_speed"], ",")
-    #     writedlm(f, cgr_info, ",")
-    # end
-    cgr_info = Array{Float64}(undef, 1, 3)
+function generate_charger(ts_coords::Matrix, cgr_speed::Float64, folder::String)
+    cgr_info = zeros(1,3)
     cgr_info[:,3] .= cgr_speed
     open("$folder/chargers.csv", "w") do f
         writedlm(f, ["x" "y" "charging_speed"], ",")
         writedlm(f, cgr_info, ",")
     end
     return cgr_info[:,1:2]
+end
+
+function generate_bus(n_c::Int64, buses::Vector{Bustype}, folder_name::String)
+    # busdata = Matrix()
+    n_types = length(bus_types)
+    open("$folder_name/buses.csv", "w") do f
+        writedlm(f, ["capacity" "num" "speed" "consumption" "maxBattery"], ',')
+        for (i,bus) in enumerate(buses)
+            n_bus = Int(n_c/n_types)
+            writedlm(f, [bus.capacity n_bus bus.v_bus bus.β bus.maxbattery], ',')
+        end
+    end
+end
+
+function depot_other(params::Parameters, max_duration::Float64, folder_name::String)
+    # depot
+    depots = hcat(params.depot...)
+    depots = hcat(1:size(depots)[1], depots)
+    open("$folder_name/depots.csv.csv", "w") do f
+        writedlm(f, ["ID" "x" "y"], ',')
+        writedlm(f, depots, ',')
+    end
+
+    # Output other parameter
+    open("$folder_name/other_parameters.csv", "w") do f
+        writedlm(f, ["service_time" "max_wlk_dist" "wlk_speed" "dwel_time" "dummy_charger" "start_time" "duration"], ',')
+        writedlm(f, [params.μ params.maxwalkdist params.v_walk 1.0 params.charger_dummies 0 max_duration+15], ',')
+    end
+end
+
+# Create a folder name
+function foldername(upperfolder::String, n_line::Int64, n_c::Int64, replace::Int64)
+    i = 0
+    folder_name = upperfolder * "l$(n_line)c$n_c"
+        if !isdir(folder_name)
+            mkdir(folder_name)
+        else
+            if replace == 0
+                target_word = "l$(n_line)c$n_c"
+                items = readdir("cross/")
+                matchfolders = filter(item -> isdir(joinpath(upperfolder, item)) && contains(lowercase(item), lowercase(target_word)), items) 
+                i = parse(Int, matchfolders[end][end]) + 1
+                folder_name = folder_name * "-$i"
+                mkdir(folder_name)
+            else
+                @warn "The generated instance replace the existing one."
+            end
+        end
+    return folder_name
 end
 
 function graph(ts_coords, c_array, n_c, opr_width, folder; flag = 1)
@@ -310,64 +237,6 @@ function save_network(folder::String, ts_tt::Array, ts_arcs::Dict)
         json_string = JSON.json(ts_arcs)
         JSON.print(f, json_string)
     end
-end
-
-function main(n_c::Int64; n_ts = 6, dist_ts = 5.0, maxRadius = 3.0, maxWlkdist = 1.0, n_line = 2,
-                start_t = 10.0, end_t = 11.0, freq = 30.0, travel_time = 5.0, dwel_time = 1.0,
-                depot = (0.0, 0.0), charger_speed = 0.83, charger_dummies = 3,  μ = 0.5,
-                v_bus = 40.0, v_mass = 60.0, v_walk = 0.085, detour_factor = 1.8,
-                bus_capacity = 10)
-    
-    # Create a folder name
-    i = 0
-    folder_name = "cross/c$n_c"
-    if !isdir(folder_name)
-        mkdir(folder_name)
-    else
-        upperfolder = "cross/"
-        target_word = "c$n_c"
-        items = readdir("cross/")
-        matchfolders = filter(item -> isdir(joinpath(upperfolder, item)) && contains(lowercase(item), lowercase(target_word)), items) 
-        i = parse(Int, matchfolders[end][end]) + 1
-        folder_name = folder_name * "-$i"
-        mkdir(folder_name)
-    end
-    Random.seed!(n_c+i)
-    # Decide operational area
-    opr_len = 2*maxRadius + dist_ts * (n_ts ÷ 2 -1)
-    opr_width = 2*maxRadius + dist_ts * (n_ts ÷ 2 -1)
-    println("Operational area: $opr_len*$opr_width km")
-    # Convert speed to km/min 
-    v_bus = v_bus/60.0
-    v_mass = v_mass/60.0
-    # Generate transit stops and timetable
-    ts_coords = generate_trainstop(n_ts, dist_ts, n_line, folder_name)
-    max_duration = generate_timetable(n_ts, start_t, end_t, freq, travel_time, dwel_time, folder_name)
-    
-    # global ts_tt, ts_arcs, ts_tt_2D, ts_arr_time, ts_dep_time, ts_arcs_2D = generate_network(folder_name, n_ts, dwel_time)
-    # save_network(folder_name, ts_tt, ts_arcs)
-    # Generate customers randomly
-    operation_time = (end_t-start_t)*60
-    cus_array = generate_customer(n_c, opr_len, opr_width, v_bus, max_duration, folder_name, detour_factor = detour_factor)
-    # Generate chargers: coordinates the same as transit stops
-    cgr_coords = generate_charger(ts_coords, charger_speed, folder_name)
-    
-    # Bus data
-    n_bus = ceil(n_c/(bus_capacity*0.1))
-    BUS_β = 0.226 # kWh/km Volswagen ID.BUZZ https://en.wikipedia.org/wiki/Volkswagen_ID._Buzz # needs to be changed
-    BUS_battery = 77
-    open("$folder_name/buses.csv", "w") do f
-        writedlm(f, ["capacity" "num" "speed" "consumption" "maxBattery"], ',')
-        writedlm(f, [bus_capacity n_bus v_bus BUS_β BUS_battery], ',')
-    end
-
-    # Output other parameter
-    open("$folder_name/other_parameters.csv", "w") do f
-        writedlm(f, ["depot_x" "depot_y" "service_time" "num_TS" "num_TS_line" "max_wlk_dist" "wlk_speed" "v_train" "dwel_time" "dummy_charger" "start_time" "duration"], ',')
-        writedlm(f, [depot[1] depot[2] μ n_ts n_line maxWlkdist v_walk v_mass dwel_time charger_dummies 0 max_duration+15], ',')
-    end
-    # Plot the instance: falg = 1(0), label for transit stops will be letters(numbers)
-    graph(ts_coords, cus_array, n_c, opr_width, folder_name, flag = 0)
 end
 
 # retrive data
