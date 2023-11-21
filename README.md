@@ -1,20 +1,8 @@
 # EIDARPgenerator
 This is the repository to generate instances/scenarios for Electric Itegrated Dial-A-Ride Problem
 
-## How to use?
-Run [generator.jl](https://github.com/YMF2022/EIDARPgenerator/blob/main/generator.jl) and the  function generate()
-
-```julia
-julia> include("generator.jl")
-generate
-
-julia> generate(20, params)
-```
-
-Description of the function
-```julia
-julia>? generate
-```
+## Usage
+[example.jl](https://github.com/YMF2022/EIDARPgenerator/blob/main/example.jl) gives an example of how to use it. Users need to predefine all the parameters.
 
 ## Outputs
-Output data are at folder [cross](https://github.com/YMF2022/EIDARPgenerator/tree/main/cross). For example, *l2c10* stands for 2 lines and 10 customers.
+Output data are at folder [cross](https://github.com/YMF2022/EIDARPgenerator/tree/main/cross). Each instance has a dedicated folder. For example, folder *l2c10* stands for 2 transit lines and 10 customers.

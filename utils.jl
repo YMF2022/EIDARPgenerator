@@ -124,7 +124,7 @@ function generate_trainstop(ts_lines::Vector{Transitline}, max_opr_radius::Float
         writedlm(f, ts_coords, ",")
     end
 
-    println(ts_coords)
+    # println(ts_coords)
     return ts_coords, opr_len, opr_width
 end
 
