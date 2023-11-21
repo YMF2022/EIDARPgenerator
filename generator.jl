@@ -17,7 +17,8 @@ Generate synthetic data for a transportation system simulation.
 
 # Examples
 ```julia
-generate(10, my_params)
+julia> generate(10, my_params)
+```
 """
 function generate(n_c::Int64, params::Parameters; upperfolder = "cross/", replace = 1)
     folder_name = foldername(upperfolder, length(params.ts_network), n_c, replace)
