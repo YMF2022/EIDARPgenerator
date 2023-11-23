@@ -1,2 +1,0 @@
-depot_x,depot_y,service_time,num_TS,num_TS_line,max_wlk_dist,wlk_speed,v_train,dwel_time,dummy_charger,start_time,duration
-0.0,0.0,0.5,6.0,2.0,1.0,0.085,1.0,1.0,3.0,0.0,85.0
