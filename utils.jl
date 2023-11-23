@@ -7,7 +7,6 @@ using DelimitedFiles
 
 function generate_timetable(ts_lines::Vector{Transitline}, start_t::Float64, end_t::Float64, folder::String; shift = 5.0)
     # sym = collect('A':'Z')
-    # tt = 5 # need to be changed as dist/v_mass
     max_duration = 0
     ts_end = 1
     for (l, line) in enumerate(ts_lines)
@@ -45,7 +44,7 @@ function generate_timetable(ts_lines::Vector{Transitline}, start_t::Float64, end
     return max_duration
 end
 
-function generate_customer(n_c, opr_len, opr_width, operation_time, detour_factor, v_bus, folder)
+function generate_customer(n_c, opr_len, opr_width, operation_time, detour_factor, v_bus, tw, folder)
     cus_array = Array{Float64}(undef, n_c, 8)
     opr_width_half = opr_width/2 - 1
     opr_len_half = opr_len/2 - 1
@@ -67,27 +66,23 @@ function generate_customer(n_c, opr_len, opr_width, operation_time, detour_facto
 
     # maximum travel time
     direct_dist = sqrt.((x_ori .- x_des).^2 + (y_ori .- y_des).^2)
-    max_duration = 2 .*direct_dist./v_bus # ear_dep + 2 * direct travel time = late_arr
+    # max_duration = 2 .*direct_dist./v_bus # ear_dep + 2 * direct travel time = late_arr
     direct_tt = direct_dist./v_bus
     max_tt = detour_factor.*direct_dist./v_bus
     
-    # Time window
-    dep_time = Vector{Float64}(undef, n_c)
-    arr_time = Vector{Float64}(undef, n_c)
+    # Time window: need to have dep_ear, dep_late
     for c in 1:n_c
-        dep = operation_time * rand()
-        arr = dep + max_duration[c]
-        while arr > operation_time
-            dep = operation_time * rand()
-            arr = dep + max_duration[c]
+        dep_ear = operation_time * rand()
+        dep_late = dep_ear + tw
+        arr_late = dep_late + max_tt[c]
+        while dep_ear + tw + max_tt[c] > operation_time
+            dep_ear = operation_time * rand()
+            dep_late = dep_ear + tw
+            arr_late = dep_late + max_tt[c]
         end
-        dep_time[c] = dep
-        arr_time[c] = arr
+        arr_ear = dep_ear + direct_tt[c]
+        cus_array[c,5:8] .= dep_ear, dep_late, arr_ear, arr_late
     end
-    cus_array[:,5] = dep_time
-    cus_array[:,6] = dep_time .+ 15
-    cus_array[:,7] = direct_tt
-    cus_array[:,8] = max_tt
 
     open("$folder/customers.csv", "w") do f
         writedlm(f, ["x_o" "y_o" "x_d" "y_d" "ear_dep_time" "late_dep_time" "direct_ridetime" "max_ridetime"], ",")
@@ -125,7 +120,7 @@ function generate_trainstop(ts_lines::Vector{Transitline}, max_opr_radius::Float
         writedlm(f, ts_coords, ",")
     end
 
-    # println(ts_coords)
+    @info("Operational area: $opr_len*$opr_width km")
     return ts_coords, opr_len, opr_width
 end
 
@@ -193,8 +188,8 @@ function foldername(upperfolder::String, n_line::Int64, n_c::Int64, replace::Int
     return folder_name, i
 end
 
-function graph(ts_coords, c_array, n_c, opr_width, folder; flag_annotate = 1)
-    image = plot(title="Scenario",legendfontsize=7, legend=:false)
+function graph(ts_coords, c_array, n_c, opr_width, cgr_coords, folder; flag_annotate = 1)
+    image = plot(title="Scenario",legendfontsize=7, legend=:true)
     ylims!(-opr_width/2-1, opr_width/2+1)
     xlims!(-opr_width/2-1, opr_width/2+1)
     # plot customers
@@ -205,11 +200,11 @@ function graph(ts_coords, c_array, n_c, opr_width, folder; flag_annotate = 1)
         annotate!(c_array[c,3]+0.2, c_array[c,4]+0.3, text("$c",10,:phase))
     end
     # plot transit stations and line
-    scatter!(ts_coords[:,1], ts_coords[:,2], label="Transit stops", 
-            markershape=:star5, markercolor=:salmon, markersize=8, markerstrokewidth=0)
     n_ts_each = size(ts_coords)[1] ÷ 2
-    plot!(ts_coords[1:n_ts_each,1], ts_coords[1:n_ts_each,2], color=:salmon, linewidth=4)
-    plot!(ts_coords[n_ts_each+1:end,1], ts_coords[n_ts_each+1:end,2], color=:salmon, linewidth=4)
+    plot!(ts_coords[1:n_ts_each,1], ts_coords[1:n_ts_each,2], color=:salmon, linewidth=4, label=false)
+    plot!(ts_coords[n_ts_each+1:end,1], ts_coords[n_ts_each+1:end,2], color=:salmon, linewidth=4, label=false)
+    scatter!(ts_coords[:,1], ts_coords[:,2], label="Transit stops", 
+    markershape=:star5, markercolor=:salmon, markersize=8, markerstrokewidth=0)
     sym = collect('A':'Z')
     if flag_annotate == 1
         for ts in 1:size(ts_coords)[1]
@@ -228,6 +223,9 @@ function graph(ts_coords, c_array, n_c, opr_width, folder; flag_annotate = 1)
             end
         end
     end
+    # plot charging stations
+    scatter!(cgr_coords[:,1], cgr_coords[:,2], label="Charger", 
+                markershape=:utriangle, markercolor=:lightblue, markersize=4, markerstrokewidth=0)
     display(image)
     savefig(image, "$folder/fig.png")
 end

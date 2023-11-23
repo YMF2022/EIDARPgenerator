@@ -31,6 +31,7 @@ struct Parameters
     charger_dummies::Int64          # number of dummies at each charger
     α::Float64                      # charging speed in kWh/min
     μ::Float64                      # service time at each stop
+    tw::Float64                     # timewindow duration
 end
 
 
