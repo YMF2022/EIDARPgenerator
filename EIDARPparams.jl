@@ -2,7 +2,7 @@
 
 struct Bustype
     v_bus::Float64                  # average speed of each buse in km/h
-    capacity::Int64             # bus capacity
+    capacity::Int64                 # bus capacity
     β::Float64                      # bus energy consumption speed kWh/km
     maxbattery::Float64             # max battery capacity in kWh
 end
@@ -25,7 +25,7 @@ struct Parameters
     maxwalkdist::Float64            # maximum walking distance for each customer
     start_t::Float64                # start time of operational period
     end_t::Float64                  # end time of operational period
-    depot::Vector           # location of depots
+    depot::Vector                   # location of depots
     v_walk::Float64                 # average walking speed of each customer in km/h
     detour_factor::Float64          # detour index for each customer
     charger_dummies::Int64          # number of dummies at each charger
