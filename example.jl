@@ -3,7 +3,7 @@ include("generator.jl")
 # define bus types
 bus_types = [
     Bustype(
-    40.0,   # bus speed
+    25.0,   # bus speed
     10,     # bus capacity
     0.226,  # kWh/km Volswagen ID.BUZZ https://en.wikipedia.org/wiki/Volkswagen_ID._Buzz # needs to be changed
     77,     # max battery capacity
@@ -11,8 +11,8 @@ bus_types = [
 ]
 
 # define train lines
-ts_network = [Transitline(3, 2, 5.0, 30.0, 60.0,1.0),
-            Transitline(3, 2, 5.0, 30.0, 60.0,1.0)]
+ts_network = [Transitline(3, 2, 5.0, 30.0, 60.0, 1.0),
+            Transitline(3, 2, 5.0, 30.0, 60.0, 1.0)]
 
 
 # define all the parameters
@@ -31,4 +31,4 @@ params = Parameters(
     0.5                     # service time at each stop
 )
 
-generate(10, params)
+generate(10, params; upperfolder = "TY/", replace = 0)

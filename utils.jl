@@ -7,10 +7,11 @@ using DelimitedFiles
 
 function generate_timetable(ts_lines::Vector{Transitline}, start_t::Float64, end_t::Float64, folder::String; shift = 5.0)
     # sym = collect('A':'Z')
-    tt = 5 # need to be changed as dist/v_mass
+    # tt = 5 # need to be changed as dist/v_mass
     max_duration = 0
     ts_end = 1
     for (l, line) in enumerate(ts_lines)
+        tt = line.dist_ts /(line.v_ts / 60)
         header = [ts_end:ts_end+line.n_ts-1; "Direction"]
         n_dep = Int(2*(end_t - start_t)*60 ÷ line.freq)
         timetable = Array{Float64}(undef, n_dep, line.n_ts+1)
@@ -168,26 +169,31 @@ end
 
 # Create a folder name
 function foldername(upperfolder::String, n_line::Int64, n_c::Int64, replace::Int64)
-    i = 0
+    # check if upper folder exists
+    if !isdir(upperfolder)
+        mkdir(upperfolder)
+    end
     folder_name = upperfolder * "l$(n_line)c$n_c"
-        if !isdir(folder_name)
+    if !isdir(folder_name)
+        mkdir(folder_name)
+        i = 0
+    else
+        if replace == 0
+            target_word = "l$(n_line)c$n_c"
+            items = readdir(upperfolder)
+            matchfolders = filter(item -> isdir(joinpath(upperfolder, item)) && contains(lowercase(item), lowercase(target_word)), items) 
+            i = parse(Int, matchfolders[end][end]) + 1
+            folder_name = folder_name * "-$i"
             mkdir(folder_name)
         else
-            if replace == 0
-                target_word = "l$(n_line)c$n_c"
-                items = readdir("cross/")
-                matchfolders = filter(item -> isdir(joinpath(upperfolder, item)) && contains(lowercase(item), lowercase(target_word)), items) 
-                i = parse(Int, matchfolders[end][end]) + 1
-                folder_name = folder_name * "-$i"
-                mkdir(folder_name)
-            else
-                @warn "The generated instance replace the existing one."
-            end
+            i = 0
+            @warn "The generated instance replace the existing one."
         end
-    return folder_name
+    end
+    return folder_name, i
 end
 
-function graph(ts_coords, c_array, n_c, opr_width, folder; flag = 1)
+function graph(ts_coords, c_array, n_c, opr_width, folder; flag_annotate = 1)
     image = plot(title="Scenario",legendfontsize=7, legend=:false)
     ylims!(-opr_width/2-1, opr_width/2+1)
     xlims!(-opr_width/2-1, opr_width/2+1)
@@ -205,7 +211,7 @@ function graph(ts_coords, c_array, n_c, opr_width, folder; flag = 1)
     plot!(ts_coords[1:n_ts_each,1], ts_coords[1:n_ts_each,2], color=:salmon, linewidth=4)
     plot!(ts_coords[n_ts_each+1:end,1], ts_coords[n_ts_each+1:end,2], color=:salmon, linewidth=4)
     sym = collect('A':'Z')
-    if flag == 1
+    if flag_annotate == 1
         for ts in 1:size(ts_coords)[1]
             if ts == n_ts_each + ceil(n_ts_each/2)
                 annotate!(ts_coords[ts,1]+0.7, ts_coords[ts,2]-0.4, text("($(sym[ts]))",10,:salmon))
