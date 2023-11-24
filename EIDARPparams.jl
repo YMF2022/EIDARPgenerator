@@ -16,11 +16,9 @@ struct Transitline
     dt::Float64                     # dwelling time at each station
 end
 
-get_ts_number(line::Transitline) = line.n_ts
-
 struct Parameters
     ts_network::Vector{Transitline} # transit network info 
-    bus_types::Vector{Bustype}      # types of bus
+    buses::Vector{Bustype}          # set of bus
     max_opr_radius::Float64         # maximum operational radius around a station
     maxwalkdist::Float64            # maximum walking distance for each customer
     start_t::Float64                # start time of operational period
@@ -31,7 +29,7 @@ struct Parameters
     charger_dummies::Int64          # number of dummies at each charger
     α::Float64                      # charging speed in kWh/min
     μ::Float64                      # service time at each stop
-    tw::Float64                     # timewindow duration
+    tw::Float64                     # timewindow duration for customers' pickup/drop-off
 end
 
 
