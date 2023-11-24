@@ -1,0 +1,2 @@
+service_time,max_wlk_dist,wlk_speed,dwel_time,dummy_charger,start_time,duration
+0.5,1.0,0.085,1.0,3.0,0.0,105.0

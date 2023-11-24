@@ -92,7 +92,7 @@ function generate_customer(n_c, opr_len, opr_width, operation_time, detour_facto
 end
 
 function generate_trainstop(ts_lines::Vector{Transitline}, max_opr_radius::Float64, folder::String)
-    n_ts = sum(get_ts_number.(ts_lines))
+    n_ts = sum(getfield.(ts_lines, :n_ts))
     ts_coords = Array{Any}(undef, n_ts, 4) # create coordinates Array
     opr_len, opr_width = 0.0, 0.0 # initilize operational area length and width
     last = 1
@@ -134,14 +134,20 @@ function generate_charger(ts_coords::Matrix, cgr_speed::Float64, folder::String)
     return cgr_info[:,1:2]
 end
 
-function generate_bus(n_c::Int64, buses::Vector{Bustype}, folder_name::String)
-    # busdata = Matrix()
-    n_types = length(bus_types)
+function generate_bus(n_c::Int64, buses::Vector{Bustype}, depots::Vector, folder_name::String)
+    n_depots = length(depots)
+    n_types = length(buses)
     open("$folder_name/buses.csv", "w") do f
-        writedlm(f, ["capacity" "num" "speed" "consumption" "maxBattery"], ',')
-        for (i,bus) in enumerate(buses)
-            n_bus = Int(n_c/n_types)
-            writedlm(f, [bus.capacity n_bus bus.v_bus bus.β bus.maxbattery], ',')
+        writedlm(f, ["ID" "type" "capacity" "speed" "consumption" "maxBattery" "depot"], ',')
+        last = 0
+        for type in 1:n_types
+            bus = buses[type]
+            n_bus = ceil(n_c/n_types)
+            for i in 1:n_bus
+                depot = rand(1:n_depots)
+                writedlm(f, [i+last type bus.capacity bus.v_bus bus.β bus.maxbattery depot], ',')
+            end
+            last += n_bus
         end
     end
 end
@@ -163,12 +169,12 @@ function depot_other(params::Parameters, max_duration::Float64, folder_name::Str
 end
 
 # Create a folder name
-function foldername(upperfolder::String, n_line::Int64, n_c::Int64, replace::Int64)
+function foldername(upperfolder::String, n_line::Int64, n_c::Int64, n_depot::Int64, n_bt::Int64, replace::Int64)
     # check if upper folder exists
     if !isdir(upperfolder)
         mkdir(upperfolder)
     end
-    folder_name = upperfolder * "l$(n_line)c$n_c"
+    folder_name = upperfolder * "l$(n_line)-c$n_c-d$n_depot-bt$n_bt"
     if !isdir(folder_name)
         mkdir(folder_name)
         i = 0
@@ -178,7 +184,7 @@ function foldername(upperfolder::String, n_line::Int64, n_c::Int64, replace::Int
             items = readdir(upperfolder)
             matchfolders = filter(item -> isdir(joinpath(upperfolder, item)) && contains(lowercase(item), lowercase(target_word)), items) 
             i = parse(Int, matchfolders[end][end]) + 1
-            folder_name = folder_name * "-$i"
+            folder_name = folder_name * "_$i"
             mkdir(folder_name)
         else
             i = 0
