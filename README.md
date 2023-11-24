@@ -1,5 +1,6 @@
 # EIDARPgenerator
 ![badge1](https://img.shields.io/badge/language-julia-blue)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 This is the repository to generate instances/scenarios for Electric Itegrated Dial-A-Ride Problem. 
 
