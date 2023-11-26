@@ -158,7 +158,7 @@ function depot_other(params::Parameters, max_duration::Float64, folder_name::Str
     depots = hcat(1:size(depots)[1], depots)
     open("$folder_name/depots.csv.csv", "w") do f
         writedlm(f, ["x" "y"], ',')
-        writedlm(f, [depots[1] depots[2]], ',')
+        writedlm(f, [depots[:,2] depots[:,3]], ',')
     end
 
     # Output other parameter
