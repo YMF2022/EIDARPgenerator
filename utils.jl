@@ -13,7 +13,7 @@ function generate_timetable(ts_lines::Vector{Transitline}, start_t::Float64, end
         tt = line.dist_ts /(line.v_ts / 60)
         header = [ts_end:ts_end+line.n_ts-1; "Direction"]
         n_dep = Int(2*(end_t - start_t)*60 ÷ line.freq)
-        timetable = Array{Float64}(undef, n_dep, line.n_ts+1)
+        timetable = Matrix{Float64}(undef, n_dep, line.n_ts+1)
         last_0 = 20.0 + 3*(l-1) # direction 0: right to left/down
         last_1 = last_0 + shift # direction 1: left to right /up
         for dep in 1:n_dep
@@ -145,7 +145,7 @@ function generate_bus(n_c::Int64, buses::Vector{Bustype}, depots::Vector, folder
             n_bus = ceil(n_c/n_types)
             for i in 1:n_bus
                 depot = rand(1:n_depots)
-                writedlm(f, [i+last type bus.capacity bus.v_bus bus.β bus.maxbattery depot], ',')
+                writedlm(f, Any[i+last type bus.capacity bus.v_bus bus.β bus.maxbattery depot], ',')
             end
             last += n_bus
         end
@@ -157,14 +157,14 @@ function depot_other(params::Parameters, max_duration::Float64, folder_name::Str
     depots = hcat(params.depot...)
     depots = hcat(1:size(depots)[1], depots)
     open("$folder_name/depots.csv.csv", "w") do f
-        writedlm(f, ["ID" "x" "y"], ',')
-        writedlm(f, depots, ',')
+        writedlm(f, ["x" "y"], ',')
+        writedlm(f, [depots[1] depots[2]], ',')
     end
 
     # Output other parameter
     open("$folder_name/other_parameters.csv", "w") do f
         writedlm(f, ["service_time" "max_wlk_dist" "wlk_speed" "dwel_time" "dummy_charger" "start_time" "duration"], ',')
-        writedlm(f, [params.μ params.maxwalkdist params.v_walk 1.0 params.charger_dummies 0 max_duration+15], ',')
+        writedlm(f, Any[params.μ params.maxwalkdist params.v_walk 1.0 params.charger_dummies 0.0 max_duration+15], ',')
     end
 end
 
