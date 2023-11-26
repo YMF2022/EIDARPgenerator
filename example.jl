@@ -30,6 +30,7 @@ params = Parameters(
     buses, 
     3.0,                    # maximum operational radius around a station
     1.0,                    # maximum walking distance for each customer
+    10.0,                   # maximum waiting time at transit stations
     10.0,                   # start time of operational period
     11.0,                   # end time of operational period
     [[0, 0], [5, 0]],       # location of depots
@@ -41,4 +42,4 @@ params = Parameters(
     15.0                    # timewindow duration
 )
 
-generate(5, params; upperfolder = "cross/", replace = 1)
+generate(5, params; upperfolder = "TY/", replace = 1)

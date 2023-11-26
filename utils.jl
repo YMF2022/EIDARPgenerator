@@ -156,15 +156,15 @@ function depot_other(params::Parameters, max_duration::Float64, folder_name::Str
     # depot
     depots = hcat(params.depot...)
     depots = hcat(1:size(depots)[1], depots)
-    open("$folder_name/depots.csv.csv", "w") do f
+    open("$folder_name/depots.csv", "w") do f
         writedlm(f, ["x" "y"], ',')
         writedlm(f, [depots[:,2] depots[:,3]], ',')
     end
 
     # Output other parameter
     open("$folder_name/other_parameters.csv", "w") do f
-        writedlm(f, ["service_time" "max_wlk_dist" "wlk_speed" "dwel_time" "dummy_charger" "start_time" "duration"], ',')
-        writedlm(f, Any[params.μ params.maxwalkdist params.v_walk 1.0 params.charger_dummies 0.0 max_duration+15], ',')
+        writedlm(f, ["service_time" "max_wlk_dist" "wlk_speed" "dwel_time" "dummy_charger" "detour_factor" "max_wait_time" "start_time" "duration"], ',')
+        writedlm(f, Any[params.μ params.max_walkdist params.v_walk 1.0 params.charger_dummies params.detour_factor params.max_waittime 0.0 max_duration+15], ',')
     end
 end
 

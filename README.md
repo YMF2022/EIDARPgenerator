@@ -32,7 +32,8 @@ struct Parameters
     ts_network::Vector{Transitline} # transit network info 
     buses::Vector{Bustype}          # set of bus
     max_opr_radius::Float64         # maximum operational radius around a station
-    maxwalkdist::Float64            # maximum walking distance for each customer
+    max_walkdist::Float64          # maximum walking distance for each customer
+    max_waittime::Float64           # maximum wait time at transit station
     start_t::Float64                # start time of operational period
     end_t::Float64                  # end time of operational period
     depot::Vector                   # location of depots
