@@ -142,7 +142,7 @@ function generate_bus(n_c::Int64, buses::Vector{Bustype}, depots::Vector, folder
         last = 0
         for type in 1:n_types
             bus = buses[type]
-            n_bus = ceil(n_c/n_types)
+            n_bus = Int(ceil(n_c/n_types))
             for i in 1:n_bus
                 depot = rand(1:n_depots)
                 writedlm(f, Any[i+last type bus.capacity bus.v_bus bus.β bus.maxbattery depot], ',')
