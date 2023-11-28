@@ -6,6 +6,7 @@ function generate_customer(n_c, opr_len, opr_width, operation_time, detour_facto
 
     # maximum travel time
     direct_tt = direct_dist./v_bus
+    cus_array[:,7] = direct_tt
     max_tt = detour_factor.*direct_dist./v_bus
     
     # Time window: need to have dep_ear, dep_late
@@ -19,11 +20,11 @@ function generate_customer(n_c, opr_len, opr_width, operation_time, detour_facto
             arr_late = dep_late + max_tt[c]
         end
         arr_ear = dep_ear + direct_tt[c]
-        cus_array[c,5:8] .= dep_ear, dep_late, arr_ear, arr_late
+        cus_array[c,5:6] .= dep_ear, dep_late
     end
 
     open("$folder/customers.csv", "w") do f
-        writedlm(f, ["x_o" "y_o" "x_d" "y_d" "ear_dep_time" "late_dep_time" "direct_ridetime" "max_ridetime"], ",")
+        writedlm(f, ["x_o" "y_o" "x_d" "y_d" "ear_dep_time" "late_dep_time" "direct_ridetime"], ",")
         writedlm(f, cus_array, ",")
     end
     return cus_array
