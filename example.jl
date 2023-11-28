@@ -42,4 +42,4 @@ params = Parameters(
     15.0                    # timewindow duration
 )
 
-generate(5, params; upperfolder = "cross/", replace = 1)
+generate(4, params; upperfolder = "TY/", replace = 1)
