@@ -188,7 +188,7 @@ function foldername(upperfolder::String, n_line::Int64, n_c::Int64, n_depot::Int
             mkdir(folder_name)
         else
             i = 0
-            @warn "The generated instance replace the existing one."
+            @warn "The generated instance replace an existing one. Set replace = 0 if you don't want to replace. "
         end
     end
     return folder_name, i

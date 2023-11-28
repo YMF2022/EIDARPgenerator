@@ -4,18 +4,18 @@ include("generator.jl")
 buses = [
     # type 1
     Bustype(
-    25.0,   # bus speed in km/h
-    20,     # bus capacity
-    0.226,  # kWh/km Volswagen ID.BUZZ https://en.wikipedia.org/wiki/Volkswagen_ID._Buzz # needs to be changed
-    77,     # max battery capacity
+        25.0,   # bus speed in km/h
+        15,     # bus capacity according to Sales-Lentz on-demand e-buse
+        0.552,  # energy consumption kWh/km according to Sales-Lentz on-demand e-buse
+        69,     # max battery capacity kWh according to Sales-Lentz on-demand e-buse
     ),
 
     # type 2
     Bustype(
-        25.0,   # bus speed in km/h
-        30,     # bus capacity
-        0.226*1.5,  # kWh/km Volswagen ID.BUZZ https://en.wikipedia.org/wiki/Volkswagen_ID._Buzz # needs to be changed
-        77*1.5,     # max battery capacity
+        25.0,       # bus speed in km/h
+        22,         # bus capacity
+        0.552*1.5,  # energy consumption kWh/km
+        69*1.5,     # max battery capacity kWh
         )
 ]
 
@@ -34,7 +34,7 @@ params = Parameters(
     10.0,                   # start time of operational period
     11.0,                   # end time of operational period
     [[0, 0], [5, 0]],       # location of depots
-    0.085,                  # average walking speed of each customer in km/h (https://en.wikipedia.org/wiki/Preferred_walking_speed)
+    5.1,                    # average walking speed of each customer in km/h (https://en.wikipedia.org/wiki/Preferred_walking_speed)
     1.5,                    # detour index for each customer
     3,                      # number of dummies at each charger
     0.83,                   # charging speed in kWh/min
@@ -42,4 +42,4 @@ params = Parameters(
     15.0                    # timewindow duration
 )
 
-generate(5, params; upperfolder = "TY/", replace = 1)
+generate(5, params; upperfolder = "cross/", replace = 1)
