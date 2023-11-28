@@ -45,7 +45,7 @@ function generate_timetable(ts_lines::Vector{Transitline}, start_t::Float64, end
 end
 
 function generate_customer(n_c, opr_len, opr_width, operation_time, detour_factor, v_bus, tw, folder)
-    cus_array = Array{Float64}(undef, n_c, 8)
+    cus_array = Array{Float64}(undef, n_c, 7)
     opr_width_half = opr_width/2 - 1
     opr_len_half = opr_len/2 - 1
     x_ori = rand(Uniform(-opr_len_half, opr_len_half), n_c)
@@ -66,8 +66,8 @@ function generate_customer(n_c, opr_len, opr_width, operation_time, detour_facto
 
     # maximum travel time
     direct_dist = sqrt.((x_ori .- x_des).^2 + (y_ori .- y_des).^2)
-    # max_duration = 2 .*direct_dist./v_bus # ear_dep + 2 * direct travel time = late_arr
     direct_tt = direct_dist./v_bus
+    cus_array[:,7] = direct_tt
     max_tt = detour_factor.*direct_dist./v_bus
     
     # Time window: need to have dep_ear, dep_late
@@ -81,11 +81,11 @@ function generate_customer(n_c, opr_len, opr_width, operation_time, detour_facto
             arr_late = dep_late + max_tt[c]
         end
         arr_ear = dep_ear + direct_tt[c]
-        cus_array[c,5:8] .= dep_ear, dep_late, arr_ear, arr_late
+        cus_array[c,5:6] .= dep_ear, dep_late
     end
 
     open("$folder/customers.csv", "w") do f
-        writedlm(f, ["x_o" "y_o" "x_d" "y_d" "ear_dep_time" "late_dep_time" "direct_ridetime" "max_ridetime"], ",")
+        writedlm(f, ["x_o" "y_o" "x_d" "y_d" "ear_dep_time" "late_dep_time" "direct_ridetime"], ",")
         writedlm(f, cus_array, ",")
     end
     return cus_array
@@ -180,10 +180,10 @@ function foldername(upperfolder::String, n_line::Int64, n_c::Int64, n_depot::Int
         i = 0
     else
         if replace == 0
-            target_word = "l$(n_line)c$n_c"
+            target_word = "l$(n_line)-c$n_c-d$n_depot-bt$n_bt"
             items = readdir(upperfolder)
             matchfolders = filter(item -> isdir(joinpath(upperfolder, item)) && contains(lowercase(item), lowercase(target_word)), items) 
-            i = parse(Int, matchfolders[end][end]) + 1
+            i = length(matchfolders) + 1
             folder_name = folder_name * "_$i"
             mkdir(folder_name)
         else
