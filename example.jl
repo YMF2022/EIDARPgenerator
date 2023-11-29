@@ -43,4 +43,4 @@ params = Parameters(
 )
 
 
-generate(4, params; upperfolder = "TY/", replace = 1)
+generate(6, params; upperfolder = "TY/", replace = 1, location = far_close_ts)

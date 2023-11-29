@@ -1,8 +1,8 @@
-function generate_customer(n_c, opr_len, opr_width, operation_time, detour_factor, v_bus, tw, ts_coords, folder; method = close_to_ts)
-    cus_array = Array{Float64}(undef, n_c, 8)
+function generate_customer(n_c::Int64, opr_len, opr_width, operation_time, detour_factor, v_bus, tw, ts_coords, folder::String, location)
+    global cus_array = Array{Float64}(undef, n_c, 7)
     opr_width_half = opr_width/2 - 1
     opr_len_half = opr_len/2 - 1
-    cus_array[:,1:4], direct_dist = method(n_c, opr_len_half, opr_width_half, ts_coords)
+    global cus_array[:,1:4], direct_dist = location(n_c, opr_len_half, opr_width_half, ts_coords)
 
     # maximum travel time
     direct_tt = direct_dist./v_bus
@@ -10,11 +10,15 @@ function generate_customer(n_c, opr_len, opr_width, operation_time, detour_facto
     max_tt = detour_factor.*direct_dist./v_bus
     
     # Time window: need to have dep_ear, dep_late
+    depot = params.depot[1]
+    @show depot
     for c in 1:n_c
+        xo, yo, xd, yd = cus_array[c,1:4]
+        time_to_depot = sqrt((xo-depot[1])^2+(yo-depot[2])^2)/v_bus
         dep_ear = operation_time * rand()
         dep_late = dep_ear + tw
         arr_late = dep_late + max_tt[c]
-        while dep_ear + tw + max_tt[c] > operation_time
+        while (dep_ear + tw + max_tt[c] > operation_time) && (dep_late < time_to_depot)
             dep_ear = operation_time * rand()
             dep_late = dep_ear + tw
             arr_late = dep_late + max_tt[c]
@@ -30,7 +34,7 @@ function generate_customer(n_c, opr_len, opr_width, operation_time, detour_facto
     return cus_array
 end
 
-function random_allocate(n_c, opr_len_half, opr_width_half, ts_coords)
+function random_spread(n_c, opr_len_half, opr_width_half, ts_coords)
     x_ori = rand(Uniform(-opr_len_half, opr_len_half), n_c)
     y_ori = rand(Uniform(-opr_width_half, opr_width_half), n_c)
     x_des = rand(Uniform(-opr_len_half, opr_len_half), n_c)
@@ -50,7 +54,7 @@ function random_allocate(n_c, opr_len_half, opr_width_half, ts_coords)
 end
 
 function closeto_ts(n_c, opr_len_half, opr_width_half, ts_coords)
-    r = 1.0
+    r = 0.5
     n_ts = size(ts_coords)[1]
     cus_coords = Matrix{Float64}(undef, (n_c, 4))
     direct_dist = Vector{Float64}(undef, n_c)
@@ -73,17 +77,28 @@ function farfrom_ts(n_c, opr_len_half, opr_width_half, ts_coords)
     cus_coords = Matrix{Float64}(undef, (n_c, 4))
     direct_dist = Vector{Float64}(undef, n_c)
     for c in 1:n_c
-        xo = rand([rand(Uniform(-9,-3)),rand(Uniform(3,9))])
-        yo = rand([rand(Uniform(-9,-3)),rand(Uniform(3,9))])
-        xd = rand([rand(Uniform(-9,-3)),rand(Uniform(3,9))])
-        yd = rand([rand(Uniform(-9,-3)),rand(Uniform(3,9))])
+        xo = rand([rand(Uniform(-6,-3)),rand(Uniform(3,6))])
+        yo = rand([rand(Uniform(-6,-3)),rand(Uniform(3,6))])
+        xd = rand([rand(Uniform(-6,-3)),rand(Uniform(3,6))])
+        yd = rand([rand(Uniform(-6,-3)),rand(Uniform(3,6))])
         dist = sqrt((xo-xd)^2+(yo-yd)^2)
         while dist < 2.0
-            xo, xd, yo, yd = rand(Uniform(-opr_len_half, opr_len_half), 4)
+            xo = rand([rand(Uniform(-6,-3)),rand(Uniform(3,6))])
+            yo = rand([rand(Uniform(-6,-3)),rand(Uniform(3,6))])
+            xd = rand([rand(Uniform(-6,-3)),rand(Uniform(3,6))])
+            yd = rand([rand(Uniform(-6,-3)),rand(Uniform(3,6))])
             dist = sqrt((xo-xd)^2+(yo-yd)^2)
         end
-        x_ori[c], x_des[c], y_ori[c], y_des[c] = xo, xd, yo, yd
-        push!(direct_dist, dist)
+        cus_coords[c,:] .= xo, yo, xd, yd
+        direct_dist[c] = dist
     end
+    return cus_coords, direct_dist
+end
+
+function far_close_ts(n_c, opr_len_half, opr_width_half, ts_coords)    
+    cus_coords1, dist1 = closeto_ts(div(n_c,2), opr_len_half, opr_width_half, ts_coords)
+    cus_coords2, dist2 =farfrom_ts(div(n_c,2), opr_len_half, opr_width_half, ts_coords)
+    cus_coords = vcat(cus_coords1, cus_coords2)
+    direct_dist = vcat(dist1, dist2)
     return cus_coords, direct_dist
 end
