@@ -43,4 +43,4 @@ params = Parameters(
 )
 
 
-generate(4, params; upperfolder = "TY/", replace = 1)
+generate(10, params; upperfolder = "cross/", replace = 1)
