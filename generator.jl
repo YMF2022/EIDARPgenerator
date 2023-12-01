@@ -37,4 +37,10 @@ function generate(n_c::Int64, params::Parameters; upperfolder = "cross/", replac
     depot_other(params, max_duration, folder_name)
     graph(ts_coords, cus_array, n_c, opr_width, cgr_coords, folder_name, flag_annotate = 0)
 end
+
+function generate(n_c_list::Vector, params::Parameters; upperfolder = "cross/", replace = 1, location = random_spread)
+    for n_c in n_c_list
+        generate(n_c::Int64, params::Parameters; upperfolder = "cross/", replace = 1, location = random_spread)
+    end
+end
  
