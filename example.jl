@@ -37,7 +37,7 @@ params = Parameters(
     5.1,                    # average walking speed of each customer in km/h (https://en.wikipedia.org/wiki/Preferred_walking_speed)
     1.5,                    # detour index for each customer
     3,                      # number of dummies at each charger
-    0.83,                   # charging speed in kWh/min
+    50,                     # charging speed in kWh/h: Europe DC charging speed https://alternative-fuels-observatory.ec.europa.eu/general-information/recharging-systems 
     0.5,                    # service time at each stop
     15.0                    # timewindow duration
 )

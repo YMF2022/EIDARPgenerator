@@ -40,7 +40,7 @@ end
 
 function generate(n_c_list::Vector, params::Parameters; upperfolder = "cross/", replace = 1, location = random_spread)
     for n_c in n_c_list
-        generate(n_c::Int64, params::Parameters; upperfolder = "cross/", replace = 1, location = random_spread)
+        generate(n_c, params; upperfolder = upperfolder, replace = replace, location = location)
     end
 end
  
