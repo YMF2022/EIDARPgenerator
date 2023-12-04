@@ -43,8 +43,8 @@ params = Parameters(
 )
 
 
-generate(15, params; upperfolder = "TY/", replace = 1, location = far_close_ts)
+generate(1, params; upperfolder = "cross/", replace = 1, location = closeto_ts)
 
 
-# cus = [15, 20,25, 30, 35, 40, 45, 50]
-# generate(cus, params; upperfolder = "TY/", replace = 1, location = far_close_ts)
+# cus = collect(22:30)
+# generate(cus, params; upperfolder = "TY/", replace = 1, location = random_spread)
