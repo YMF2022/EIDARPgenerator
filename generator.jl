@@ -31,7 +31,11 @@ function generate(n_c::Int64, params::Parameters; upperfolder = "cross/", replac
     ts_coords, opr_len, opr_width = generate_trainstop(params.ts_network, params.max_opr_radius, folder_name)
     max_duration = generate_timetable(params.ts_network, params.start_t, params.end_t, folder_name)
     max_duration = max(max_duration+20, opr_len/v_bus) # define the operational time for customers' timewindow generation
+<<<<<<< HEAD
     cus_array = generate_customer(n_c, opr_len, opr_width, max_duration, params.detour_factor, v_bus, params.tw, ts_coords, folder_name, location)
+=======
+    cus_array = generate_customer(n_c, opr_len, opr_width, max_duration, params.detour_factor, v_bus, params.tw, folder_name)
+>>>>>>> main
     cgr_coords = generate_charger(ts_coords, params.α, folder_name)
     generate_bus(n_c, params.buses, params.depot, folder_name)
     depot_other(params, max_duration, folder_name)

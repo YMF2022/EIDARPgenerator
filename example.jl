@@ -43,8 +43,12 @@ params = Parameters(
 )
 
 
+<<<<<<< HEAD
 generate(1, params; upperfolder = "cross/", replace = 1, location = closeto_ts)
 
 
 # cus = collect(22:30)
 # generate(cus, params; upperfolder = "TY/", replace = 1, location = random_spread)
+=======
+generate(10, params; upperfolder = "cross/", replace = 1)
+>>>>>>> main
