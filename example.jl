@@ -37,10 +37,18 @@ params = Parameters(
     5.1,                    # average walking speed of each customer in km/h (https://en.wikipedia.org/wiki/Preferred_walking_speed)
     1.5,                    # detour index for each customer
     3,                      # number of dummies at each charger
-    0.83,                   # charging speed in kWh/min
+    50,                     # charging speed in kWh/h: Europe DC charging speed https://alternative-fuels-observatory.ec.europa.eu/general-information/recharging-systems 
     0.5,                    # service time at each stop
     15.0                    # timewindow duration
 )
 
 
+<<<<<<< HEAD
+generate(1, params; upperfolder = "cross/", replace = 1, location = closeto_ts)
+
+
+# cus = collect(22:30)
+# generate(cus, params; upperfolder = "TY/", replace = 1, location = random_spread)
+=======
 generate(10, params; upperfolder = "cross/", replace = 1)
+>>>>>>> main
