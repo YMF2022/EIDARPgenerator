@@ -20,13 +20,12 @@ buses = [
 ]
 
 # define train lines
-ts_network = [Transitline(3, 2, 5.0, 30.0, 60.0, 1.0),
-            Transitline(3, 2, 5.0, 30.0, 60.0, 1.0)]
+ts_lines = [Transitline(:straight, 3, 2, 5.0, 30.0, 60.0, 1.0),
+            Transitline(:straight, 3, 2, 5.0, 30.0, 60.0, 1.0)]
 
 
 # define all the parameters
 params = Parameters(
-    ts_network,
     buses, 
     3.0,                    # maximum operational radius around a station
     1.0,                    # maximum walking distance for each customer
@@ -43,4 +42,6 @@ params = Parameters(
 )
 
 
-generate(1, params; upperfolder = "cross/", replace = 1, location = closeto_ts)
+generate(1, ts_lines, params; upperfolder = "cross/", replace = 1, location = closeto_ts)
+
+# generate(5, params, :crossring)

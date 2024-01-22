@@ -1,8 +1,8 @@
-function generate_customer(n_c::Int64, opr_len, opr_width, operation_time, detour_factor, v_bus, tw, ts_coords, folder::String, location::Function)
+function generate_customer(n_c::Int64, opr_len, opr_width, operation_time, detour_factor, v_bus, tw, ts_stops, folder::String, location::Function)
     cus_array = Array{Float64}(undef, n_c, 7)
     opr_width_half = opr_width/2 - 1
     opr_len_half = opr_len/2 - 1
-    cus_array[:,1:4], direct_dist = location(n_c, opr_len_half, opr_width_half, ts_coords)
+    cus_array[:,1:4], direct_dist = location(n_c, opr_len_half, opr_width_half, ts_stops)
 
     # maximum travel time
     direct_tt = direct_dist./v_bus
@@ -34,7 +34,7 @@ function generate_customer(n_c::Int64, opr_len, opr_width, operation_time, detou
     return cus_array
 end
 
-function random_spread(n_c, opr_len_half, opr_width_half, ts_coords)
+function random_spread(n_c, opr_len_half, opr_width_half, ts_stops)
     x_ori = rand(Uniform(-opr_len_half, opr_len_half), n_c)
     y_ori = rand(Uniform(-opr_width_half, opr_width_half), n_c)
     x_des = rand(Uniform(-opr_len_half, opr_len_half), n_c)
@@ -53,9 +53,9 @@ function random_spread(n_c, opr_len_half, opr_width_half, ts_coords)
     return hcat(x_ori, y_ori, x_des, y_des), direct_dist
 end
 
-function closeto_ts(n_c, opr_len_half, opr_width_half, ts_coords)
+function closeto_ts(n_c, opr_len_half, opr_width_half, ts_stops)
     r_max = 0.5
-    n_ts = size(ts_coords)[1]
+    n_ts = size(ts_stops)[1]
     cus_coords = Matrix{Float64}(undef, (n_c, 4))
     direct_dist = Vector{Float64}(undef, n_c)
     for c in 1:n_c
@@ -63,10 +63,10 @@ function closeto_ts(n_c, opr_len_half, opr_width_half, ts_coords)
         r = r_max*rand()
         ts_o = rand(1:n_ts)
         ts_d = rand([i for i in 1:n_ts if i!=ts_o])
-        xo = cosd(θ)*r + ts_coords[ts_o,1]
-        yo = sind(θ)*r + ts_coords[ts_o,2]
-        xd = cosd(θ)*r + ts_coords[ts_d,1]
-        yd = sind(θ)*r + ts_coords[ts_d,2]
+        xo = cosd(θ)*r + ts_stops[ts_o,:].x
+        yo = sind(θ)*r + ts_stops[ts_o,:].y
+        xd = cosd(θ)*r + ts_stops[ts_d,:].x
+        yd = sind(θ)*r + ts_stops[ts_d,:].y
         dist = sqrt((xo-xd)^2+(yo-yd)^2)
         direct_dist[c] = dist
         cus_coords[c,:] .= xo, yo, xd, yd
@@ -74,7 +74,7 @@ function closeto_ts(n_c, opr_len_half, opr_width_half, ts_coords)
     return cus_coords, direct_dist
 end
 
-function farfrom_ts(n_c, opr_len_half, opr_width_half, ts_coords)
+function farfrom_ts(n_c, opr_len_half, opr_width_half, ts_stops)
     cus_coords = Matrix{Float64}(undef, (n_c, 4))
     direct_dist = Vector{Float64}(undef, n_c)
     r_max = 3
@@ -85,20 +85,20 @@ function farfrom_ts(n_c, opr_len_half, opr_width_half, ts_coords)
         r = rand(Uniform(r_min,r_max))
         ts_o = rand(ts_list)
         ts_d = rand([i for i in ts_list if i!=ts_o])
-        xo = cosd(θ)*r + ts_coords[ts_o,1]
-        yo = sind(θ)*r + ts_coords[ts_o,2]
-        xd = cosd(θ)*r + ts_coords[ts_d,1]
-        yd = sind(θ)*r + ts_coords[ts_d,2]
+        xo = cosd(θ)*r + ts_stops[ts_o,:].x
+        yo = sind(θ)*r + ts_stops[ts_o,:].y
+        xd = cosd(θ)*r + ts_stops[ts_d,:].x
+        yd = sind(θ)*r + ts_stops[ts_d,:].y
         dist = sqrt((xo-xd)^2+(yo-yd)^2)
         while dist < 2.0
             θ = rand(0:360)
             r = rand(Uniform(r_min,r_max))
             ts_o = rand(ts_list)
             ts_d = rand([i for i in ts_list if i!=ts_o])
-            xo = cosd(θ)*r + ts_coords[ts_o,1]
-            yo = sind(θ)*r + ts_coords[ts_o,2]
-            xd = cosd(θ)*r + ts_coords[ts_d,1]
-            yd = sind(θ)*r + ts_coords[ts_d,2]
+            xo = cosd(θ)*r + ts_stops[ts_o,:].x
+            yo = sind(θ)*r + ts_stops[ts_o,:].y
+            xd = cosd(θ)*r + ts_stops[ts_d,:].x
+            yd = sind(θ)*r + ts_stops[ts_d,:].y
             dist = sqrt((xo-xd)^2+(yo-yd)^2)
         end
         cus_coords[c,:] .= xo, yo, xd, yd
@@ -107,11 +107,11 @@ function farfrom_ts(n_c, opr_len_half, opr_width_half, ts_coords)
     return cus_coords, direct_dist
 end
 
-function far_close_ts(n_c, opr_len_half, opr_width_half, ts_coords)   
+function far_close_ts(n_c, opr_len_half, opr_width_half, ts_stops)   
     n_c_1 =  div(n_c,2)
     n_c_2 = n_c - n_c_1
-    cus_coords1, dist1 = closeto_ts(n_c_1, opr_len_half, opr_width_half, ts_coords)
-    cus_coords2, dist2 =farfrom_ts(n_c_2, opr_len_half, opr_width_half, ts_coords)
+    cus_coords1, dist1 = closeto_ts(n_c_1, opr_len_half, opr_width_half, ts_stops)
+    cus_coords2, dist2 =farfrom_ts(n_c_2, opr_len_half, opr_width_half, ts_stops)
     cus_coords = vcat(cus_coords1, cus_coords2)
     direct_dist = vcat(dist1, dist2)
     return cus_coords, direct_dist
