@@ -25,7 +25,7 @@ buses = [
 # ts_network = read_transit_network("crossring/")
 ts_lines = [Transitline(:straight, 5, 5.0, 30.0, 60.0, 1.0),
             Transitline(:straight, 5, 5.0, 30.0, 60.0, 1.0),
-            Transitline(:circle, 7, 5.0, 30.0, 60.0, 1.0)]
+            Transitline(:circle, 9, 5.0, 30.0, 60.0, 1.0)]
 
 
 # define all the parameters

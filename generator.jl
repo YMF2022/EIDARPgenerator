@@ -36,7 +36,6 @@ function generate(n_c::Int64, ts_lines::Vector{Crossline}, params::Parameters; u
     generate_bus(n_c, params.buses, params.depot, folder_name)
     depot_other(params, max_duration, folder_name)
     graph(ts_stops, ts_lines, cus_array, n_c, opr_len, opr_width, cgr_coords, folder_name, flag_annotate = 1)
-    # graph_ts(ts_stops)
 end
 
 function generate(n_c::Int64, ts_lines::Vector{Userline}, params::Parameters, networkshape::Symbol; replace = 1, location = random_spread)

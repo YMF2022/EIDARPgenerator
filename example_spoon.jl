@@ -23,7 +23,7 @@ buses = [
 
 # define train lines
 # ts_network = read_transit_network("crossring/")
-ts_lines = [Transitline(:straight, 5, 5.0, 30.0, 60.0, 1.0),
+ts_lines = [Transitline(:straight, 3, 5.0, 30.0, 60.0, 1.0),
             Transitline(:straight, 5, 5.0, 30.0, 60.0, 1.0)]
 
 
@@ -47,4 +47,4 @@ params = Parameters(
 
 # generate(1, params; upperfolder = "cross/", replace = 1, location = closeto_ts)
 
-generate(5, ts_lines, params, :spoon)
+generate(1, ts_lines, params, :spoon)
