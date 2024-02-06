@@ -22,8 +22,8 @@ Generate synthetic data for a transportation system simulation.
 julia> generate(10, my_params)
 ```
 """
-function generate(n_c::Int64, ts_lines::Vector{Crossline}, params::Parameters; upperfolder = "cross/", replace = 1, location = random_spread)
-
+function generate(n_c::Int64, ts_lines::Vector{Crossline}, params::Parameters, networkshape::Symbol; replace = 1, location = random_spread)
+    upperfolder = string(networkshape) * "/"
     folder_name, seed = foldername(upperfolder, length(ts_lines), n_c, length(params.depot), length(params.buses), replace)
     Random.seed!(n_c * 10 + seed)
     v_bus = params.buses[1].v_bus/60
@@ -38,6 +38,9 @@ function generate(n_c::Int64, ts_lines::Vector{Crossline}, params::Parameters; u
     graph(ts_stops, ts_lines, cus_array, n_c, opr_len, opr_width, cgr_coords, folder_name, flag_annotate = 1)
 end
 
+"""
+Generate demands for network like "crossing, spoon and fork"
+"""
 function generate(n_c::Int64, ts_lines::Vector{Userline}, params::Parameters, networkshape::Symbol; replace = 1, location = random_spread)
     upperfolder = string(networkshape) * "/"
     folder_name, seed = foldername(upperfolder, length(ts_lines), n_c, length(params.depot), length(params.buses), replace)
@@ -54,9 +57,9 @@ function generate(n_c::Int64, ts_lines::Vector{Userline}, params::Parameters, ne
     graph(ts_stops, ts_lines, cus_array, n_c, opr_len, opr_width, cgr_coords, folder_name, flag_annotate = 0)
 end
 
-function generate(n_c_list::Vector, params::Parameters; upperfolder = "cross/", replace = 1, location = random_spread)
+function generate(n_c_list::Vector, ts_lines::Vector, params::Parameters, networkshape::Symbol; replace = 1, location = random_spread)
     for n_c in n_c_list
-        generate(n_c, params; upperfolder = upperfolder, replace = replace, location = location)
+        generate(n_c, ts_lines, params, networkshape; replace = replace, location = location)
     end
 end
  

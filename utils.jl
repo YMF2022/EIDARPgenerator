@@ -174,6 +174,10 @@ function graph(ts_stops, ts_lines, c_array, n_c, opr_len, opr_width, cgr_coords,
     scatter!(cgr_coords[:,1], cgr_coords[:,2], label="Charger", 
     markershape=:utriangle, markercolor=:lightblue, markersize=4, markerstrokewidth=0)
 
+    # plot depots
+    depots = hcat(params.depot...)
+    scatter!(depots[1,:], depots[2,:], label="depots", markerstrokecolor=:blue, marker = (:diamond,8,:white))
+
     # plot transit stations and lines
     graph_ts(ts_stops, ts_lines; flag_annotate = flag_annotate)
 

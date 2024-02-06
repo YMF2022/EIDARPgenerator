@@ -10,18 +10,24 @@ function generate_customer(n_c::Int64, opr_len, opr_width, operation_time, detou
     max_tt = detour_factor.*direct_dist./v_bus
     
     # Time window: need to have dep_ear, dep_late
-    depot = params.depot[1]
+    depot = params.depot
     @show depot
     for c in 1:n_c
         xo, yo, xd, yd = cus_array[c,1:4]
-        time_to_depot = sqrt((xo-depot[1])^2+(yo-depot[2])^2)/v_bus
+        # time_to_depot = sqrt((xo-depot[1])^2+(yo-depot[2])^2)/v_bus
+        time_to_depot = [cal_traveltime((xo,yo), d, v_bus) for d in depot]
         dep_ear = operation_time * rand()
         dep_late = dep_ear + tw
         arr_late = dep_late + max_tt[c]
-        while (dep_ear + tw + max_tt[c] > operation_time) && (dep_late < time_to_depot)
+        max_iteration = 10000; count = 0
+        while (dep_ear + tw + max_tt[c] > operation_time) && any(x -> x > dep_late, time_to_depot) && (count < max_iteration)
+            count += 1
             dep_ear = operation_time * rand()
             dep_late = dep_ear + tw
             arr_late = dep_late + max_tt[c]
+        end
+        if count == max_iteration
+            @error "Wrong timewindow generation for customer $c"
         end
         arr_ear = dep_ear + direct_tt[c]
         cus_array[c,5:6] .= dep_ear, dep_late
@@ -33,6 +39,8 @@ function generate_customer(n_c::Int64, opr_len, opr_width, operation_time, detou
     end
     return cus_array
 end
+
+cal_traveltime(coord1::Union{Vector, Tuple}, coord2::Union{Vector, Tuple}, speed::Float64) = sqrt((coord1[1]-coord2[1])^2+(coord1[2]-coord2[2])^2)/speed
 
 function random_spread(n_c, opr_len_half, opr_width_half, ts_stops)
     x_ori = rand(Uniform(-opr_len_half, opr_len_half), n_c)

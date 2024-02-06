@@ -27,6 +27,12 @@ ts_lines = [Transitline(:straight, 5, 5.0, 30.0, 60.0, 1.0),
             Transitline(:straight, 5, 5.0, 30.0, 60.0, 1.0),
             Transitline(:circle, 9, 5.0, 30.0, 60.0, 1.0)]
 
+# define depot(s) coordinats
+depot_coord = [
+    [-2.5, 0],
+    [2.5, 0]
+]
+
 
 # define all the parameters
 params = Parameters(
@@ -36,7 +42,7 @@ params = Parameters(
     10.0,                   # maximum waiting time at transit stations
     10.0,                   # start time of operational period
     11.0,                   # end time of operational period
-    [[0, 0], [5, 0]],       # location of depots
+    depot_coord,            # location of depots
     5.1,                    # average walking speed of each customer in km/h (https://en.wikipedia.org/wiki/Preferred_walking_speed)
     1.5,                    # detour index for each customer
     3,                      # number of dummies at each charger
@@ -48,4 +54,7 @@ params = Parameters(
 
 # generate(1, params; upperfolder = "cross/", replace = 1, location = closeto_ts)
 
-generate(5, ts_lines, params, :crossring)
+generate(8, ts_lines, params, :crossring, replace = 1)
+
+demand_list = collect(5:10)
+generate(demand_list, ts_lines, params, :crossring)
