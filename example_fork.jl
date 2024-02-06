@@ -48,4 +48,4 @@ params = Parameters(
 
 # generate(1, params; upperfolder = "cross/", replace = 1, location = closeto_ts)
 
-generate(10, ts_lines, params, :fork)
+generate(4, ts_lines, params, :fork)
