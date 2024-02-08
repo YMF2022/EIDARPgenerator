@@ -30,6 +30,9 @@ ts_lines = [Transitline(:straight, 3, 5.0, 30.0, 60.0, 1.0),
 # define depots
 depot_coord = [[-1.5, 0], [1.5,0]]
 
+# define chargers
+chargers = [Charger(0.0, 0.0, 50.0)] # charging speed in kWh/h: Europe DC charging speed https://alternative-fuels-observatory.ec.europa.eu/general-information/recharging-systems 
+
 # define all the parameters
 params = Parameters(
     buses, 
@@ -41,8 +44,8 @@ params = Parameters(
     depot_coord,            # location of depots
     5.1,                    # average walking speed of each customer in km/h (https://en.wikipedia.org/wiki/Preferred_walking_speed)
     1.5,                    # detour index for each customer
+    chargers,               # set of chargers
     3,                      # number of dummies at each charger
-    50,                     # charging speed in kWh/h: Europe DC charging speed https://alternative-fuels-observatory.ec.europa.eu/general-information/recharging-systems 
     0.5,                    # service time at each stop
     15.0                    # timewindow duration
 )

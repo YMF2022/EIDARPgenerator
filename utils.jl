@@ -17,13 +17,13 @@ function generate_timetable(ts_lines::Vector{T}, start_t::Float64, end_t::Float6
         last_0 = 20.0 + 3*(l-1) # direction 0: right to left/down
         last_1 = last_0 + shift # direction 1: left to right /up
         for dep in 1:n_dep
-            if isinteger(dep/2)
+            if isinteger(dep/2) # direction left to right; up to down; clockwise
                 timetable[dep, line.n_ts+1] = 0
                 for ts in line.n_ts:-1:1
                     timetable[dep,ts] = last_1 + abs(ts-line.n_ts)*(tt+line.dt)
                 end
                 last_1 += line.freq
-            else
+            else # direction right to left; down to up; anti-clockwise
                 timetable[dep, line.n_ts+1] = 1
                 for ts in 1:line.n_ts
                     timetable[dep,ts] = last_0 + (ts-1)*(tt+line.dt)
@@ -88,9 +88,13 @@ function read_transit_network(networkshape::Symbol, folder::String, params::Para
     return ts_stops, opr_len, opr_width
 end
 
-function generate_charger(ts_stops::DataFrame, cgr_speed::Float64, folder::String)
-    cgr_info = zeros(1,3)
-    cgr_info[:,3] .= cgr_speed
+function generate_charger(ts_stops::DataFrame, chargers::Vector{Charger}, folder::String; at_ts = 0)
+    global cgr_info = zeros(length(chargers),3)
+    for i in 1:length(chargers)
+        cgr = chargers[i]
+        cgr_info[i,:] .= cgr.x, cgr.y, cgr.speed
+    end
+
     open("$folder/chargers.csv", "w") do f
         writedlm(f, ["x" "y" "charging_speed"], ",")
         writedlm(f, cgr_info, ",")
@@ -174,11 +178,11 @@ function graph(ts_stops, ts_lines, c_array, n_c, opr_len, opr_width, cgr_coords,
 
     # plot charging stations
     scatter!(cgr_coords[:,1], cgr_coords[:,2], label="Charger", 
-    markershape=:utriangle, markercolor=:lightblue, markersize=4, markerstrokewidth=0)
+    markershape=:diamond, markercolor=:lightblue, markersize= 4, markerstrokewidth=0)
 
     # plot depots
     depots = hcat(params.depot...)
-    scatter!(depots[1,:], depots[2,:], label="depots", markerstrokecolor=:blue, marker = (:diamond,8,:white))
+    scatter!(depots[1,:], depots[2,:], label="depots", markerstrokecolor=:blue, marker = (:diamond,4,:white))
 
     # plot transit stations and lines
     graph_ts(ts_stops, ts_lines; flag_annotate = flag_annotate)

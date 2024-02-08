@@ -29,15 +29,19 @@ ts_lines = [Transitline(:straight, 5, 2.5, 30.0, 60.0, 1.0),
 
 # define depot(s) coordinats
 depot_coord = [
-    [-2.5, 0],
-    [2.5, 0]
+    [-4.0, 4.0],
+    [4.0, -4.0]
 ]
+
+# define chargers
+chargers = [Charger(4.0, 4.0, 50.0),  
+            Charger(-4.0, -4.0, 100.0)] # charging speed in kWh/h: Europe DC charging speed https://alternative-fuels-observatory.ec.europa.eu/general-information/recharging-systems 
 
 
 # define all the parameters
 params = Parameters(
     buses, 
-    3.0,                    # maximum operational radius around a station
+    2.0,                    # maximum operational radius around a station
     1.0,                    # maximum walking distance for each customer
     10.0,                   # maximum waiting time at transit stations
     10.0,                   # start time of operational period
@@ -45,16 +49,16 @@ params = Parameters(
     depot_coord,            # location of depots
     5.1,                    # average walking speed of each customer in km/h (https://en.wikipedia.org/wiki/Preferred_walking_speed)
     1.5,                    # detour index for each customer
+    chargers,               # set of chargers
     3,                      # number of dummies at each charger
-    50,                     # charging speed in kWh/h: Europe DC charging speed https://alternative-fuels-observatory.ec.europa.eu/general-information/recharging-systems 
     0.5,                    # service time at each stop
     15.0                    # timewindow duration
 )
 
 
 
-
-generate(8, ts_lines, params, :crossring, replace = 1)
+annotate_offset = 0.4
+generate(1, ts_lines, params, :crossring, replace = 1)
 
 demand_list = collect(5:10)
 generate(demand_list, ts_lines, params, :crossring)

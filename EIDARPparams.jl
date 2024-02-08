@@ -55,6 +55,11 @@ struct Transitstop
     transfer::Int64
 end
 
+struct Charger
+    x::Float64
+    y::Float64
+    speed::Float64      # charging speed in kWh/min
+end
 
 mutable struct Parameters
     buses::Vector{Bustype}          # set of bus
@@ -66,8 +71,8 @@ mutable struct Parameters
     depot::Vector{Vector{Float32}}  # location of depots
     v_walk::Float64                 # average walking speed of each customer in km/h
     detour_factor::Float64          # detour index for each customer
-    charger_dummies::Int64          # number of dummies at each charger
-    α::Float64                      # charging speed in kWh/min
+    chargers::Vector{Charger}       # set of chargers
+    charger_dummies::Int64          # number of dummies at each charger                  
     μ::Float64                      # service time at each stop
     tw::Float64                     # timewindow duration for customers' pickup/drop-off
 end

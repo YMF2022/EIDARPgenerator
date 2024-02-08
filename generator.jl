@@ -32,7 +32,7 @@ function generate(n_c::Int64, ts_lines::Vector{Crossline}, params::Parameters, n
     max_duration = generate_timetable(ts_lines, params.start_t, params.end_t, folder_name)
     max_duration = max(max_duration+20, opr_len/v_bus) # define the operational time for customers' timewindow generation
     cus_array = generate_customer(n_c, opr_len, opr_width, max_duration, params.detour_factor, v_bus, params.tw, ts_stops, folder_name, location)
-    cgr_coords = generate_charger(ts_stops, params.α, folder_name)
+    cgr_coords = generate_charger(ts_stops, params.chargers, folder_name)
     generate_bus(n_c, params.buses, params.depot, folder_name)
     depot_other(params, max_duration, folder_name)
     graph(ts_stops, ts_lines, cus_array, n_c, opr_len, opr_width, cgr_coords, folder_name, flag_annotate = 1)
@@ -52,7 +52,7 @@ function generate(n_c::Int64, ts_lines::Vector{Userline}, params::Parameters, ne
     max_duration = generate_timetable(ts_lines, params.start_t, params.end_t, folder_name)
     max_duration = max(max_duration+20, opr_len/v_bus) # define the operational time for customers' timewindow generation
     cus_array = generate_customer(n_c, opr_len, opr_width, max_duration, params.detour_factor, v_bus, params.tw, ts_stops, folder_name, location)
-    cgr_coords = generate_charger(ts_stops, params.α, folder_name)
+    cgr_coords = generate_charger(ts_stops, params.chargers, folder_name)
     generate_bus(n_c, params.buses, params.depot, folder_name)
     depot_other(params, max_duration, folder_name)
     graph(ts_stops, ts_lines, cus_array, n_c, opr_len, opr_width, cgr_coords, folder_name, flag_annotate = 0)
