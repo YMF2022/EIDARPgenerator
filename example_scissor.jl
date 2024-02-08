@@ -24,16 +24,15 @@ buses = [
 # define train lines
 # ts_network = read_transit_network("crossring/")
 ts_lines = [Transitline(:straight, 3, 5.0, 30.0, 60.0, 1.0),
-            Transitline(:straight, 3, 5.0, 30.0, 60.0, 1.0),
-            Transitline(:straight, 3, 5.0, 30.0, 60.0, 1.0),]
+            Transitline(:straight, 5, 5.0, 30.0, 60.0, 1.0)]
 
 # define depots
-depot_coord = [[-1.5, 0], [1.5,0]]
+depot_coord = [[-3.0, -3.0], [3.0, 3.0]]
 
 # define all the parameters
 params = Parameters(
     buses, 
-    3.0,                    # maximum operational radius around a station
+    2.0,                    # maximum operational radius around a station
     1.0,                    # maximum walking distance for each customer
     10.0,                   # maximum waiting time at transit stations
     10.0,                   # start time of operational period
@@ -47,7 +46,9 @@ params = Parameters(
     15.0                    # timewindow duration
 )
 
-generate(4, ts_lines, params, :fork, replace = 1, location = random_spread)
+annotate_offset = 0.4
 
-demand_list = collect(5:10)
-generate(demand_list, ts_lines, params, :fork)
+generate(10, ts_lines, params, :scissor)
+
+# demand_list = collect(5:10)
+# generate(demand_list, ts_lines, params, :scissor)

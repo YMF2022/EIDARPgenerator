@@ -107,9 +107,9 @@ function generate_bus(n_c::Int64, buses::Vector{Bustype}, depots::Vector, folder
         for type in 1:n_types
             bus = buses[type]
             n_bus = Int(ceil(n_c/n_types))
+            depot = rand(1:n_depots, n_bus)
             for i in 1:n_bus
-                depot = rand(1:n_depots)
-                writedlm(f, Any[i+last type bus.capacity bus.v_bus bus.β bus.maxbattery depot], ',')
+                writedlm(f, Any[i+last type bus.capacity bus.v_bus bus.β bus.maxbattery depot[i]], ',')
             end
             last += n_bus
         end
@@ -119,10 +119,12 @@ end
 function depot_other(params::Parameters, max_duration::Float64, folder_name::String)
     # depot
     depots = hcat(params.depot...)
-    depots = hcat(1:size(depots)[1], depots)
+    depots = transpose(depots)
     open("$folder_name/depots.csv", "w") do f
         writedlm(f, ["x" "y"], ',')
-        writedlm(f, [depots[:,2] depots[:,3]], ',')
+        # writedlm(f, [depots[:,1] depots[:,2]], ',')
+        writedlm(f, depots, ',')
+
     end
 
     # Output other parameter
@@ -209,9 +211,9 @@ function graph_ts(ts_stops, ts_lines; flag_annotate = 1)
         for ts in 1:size(ts_stops)[1]
             c = colors[ts_stops.line[ts]]
             if (ts_stops.x[ts],ts_stops.y[ts]) ∈ plotted_coords
-                annotate!(ts_stops.x[ts]+0.8, ts_stops.y[ts]-0.4, text("($(sym[ts]))",10, c)) 
+                annotate!(ts_stops.x[ts]+0.8, ts_stops.y[ts]+annotate_offset, text("($(sym[ts]))",10, c)) 
             else
-                annotate!(ts_stops.x[ts]+0.3, ts_stops.y[ts]-0.4, text("$(sym[ts])",10, c))
+                annotate!(ts_stops.x[ts]+0.3, ts_stops.y[ts]+annotate_offset, text("$(sym[ts])",10, c))
                 push!(plotted_coords, (ts_stops.x[ts],ts_stops.y[ts]))
             end 
         end
@@ -220,9 +222,9 @@ function graph_ts(ts_stops, ts_lines; flag_annotate = 1)
         plotted_coords = Vector{Tuple{Float64, Float64}}()
         for ts in 1:size(ts_stops)[1]
             if (ts_stops.x[ts],ts_stops.y[ts]) ∈ plotted_coords
-                annotate!(ts_stops.x[ts]+0.8, ts_stops.y[ts], text("($ts)",10,colors[ts_stops[ts,3]]))
+                annotate!(ts_stops.x[ts]+0.8, ts_stops.y[ts]+annotate_offset, text("($ts)",10,colors[ts_stops[ts,3]]))
             else
-                annotate!(ts_stops.x[ts]+0.3, ts_stops.y[ts]-0.4, text("$ts",10,colors[ts_stops[ts,3]]))
+                annotate!(ts_stops.x[ts]+0.3, ts_stops.y[ts]+annotate_offset, text("$ts",10,colors[ts_stops[ts,3]]))
                 push!(plotted_coords, (ts_stops.x[ts],ts_stops.y[ts]))
             end
         end

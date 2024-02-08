@@ -44,7 +44,9 @@ params = Parameters(
 )
 
 
-generate(2, ts_lines, params, :cross; replace = 1, location = random_spread)
+# generate one instance
+generate(7, ts_lines, params, :cross; replace = 1, location = random_spread)
 
-demand_list = collect(5:10)
-generate(demand_list, ts_lines, params, :cross)
+# generate multiple instance
+# demand_list = collect(5:10)
+# generate(demand_list, ts_lines, params, :cross)

@@ -47,6 +47,7 @@ function generate(n_c::Int64, ts_lines::Vector{Userline}, params::Parameters, ne
     Random.seed!(n_c * 10 + seed)
     v_bus = params.buses[1].v_bus/60
     ts_stops, opr_len, opr_width = read_transit_network(networkshape, upperfolder, params)
+    @info "Operation area is: $opr_len*$opr_width km"
     # graph_ts(ts_stops, ts_lines, flag_annotate = 0)
     max_duration = generate_timetable(ts_lines, params.start_t, params.end_t, folder_name)
     max_duration = max(max_duration+20, opr_len/v_bus) # define the operational time for customers' timewindow generation

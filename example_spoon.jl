@@ -47,9 +47,8 @@ params = Parameters(
 )
 
 
-# generate(1, params; upperfolder = "cross/", replace = 1, location = closeto_ts)
 
-generate(10, ts_lines, params, :spoon)
+# generate(10, ts_lines, params, :spoon)
 
 demand_list = collect(5:10)
 generate(demand_list, ts_lines, params, :spoon)
