@@ -29,7 +29,6 @@ end
 3. And
 ```julia
 struct Parameters
-    ts_network::Vector{Transitline} # transit network info 
     buses::Vector{Bustype}          # set of bus
     max_opr_radius::Float64         # maximum operational radius around a station
     max_walkdist::Float64          # maximum walking distance for each customer

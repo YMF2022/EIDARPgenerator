@@ -1,12 +1,12 @@
 using Plots
 using Random
-using JSON
-using HDF5
 using Distributions
 using DelimitedFiles
+using Distances
+using DataFrames
+using CSV
 
-function generate_timetable(ts_lines::Vector{Transitline}, start_t::Float64, end_t::Float64, folder::String; shift = 5.0)
-    # sym = collect('A':'Z')
+function generate_timetable(ts_lines::Vector{T}, start_t::Float64, end_t::Float64, folder::String; shift = 5.0) where T<:Transitline
     max_duration = 0
     ts_end = 1
     for (l, line) in enumerate(ts_lines)
@@ -17,13 +17,13 @@ function generate_timetable(ts_lines::Vector{Transitline}, start_t::Float64, end
         last_0 = 20.0 + 3*(l-1) # direction 0: right to left/down
         last_1 = last_0 + shift # direction 1: left to right /up
         for dep in 1:n_dep
-            if isinteger(dep/2)
+            if isinteger(dep/2) # direction left to right; up to down; clockwise
                 timetable[dep, line.n_ts+1] = 0
                 for ts in line.n_ts:-1:1
                     timetable[dep,ts] = last_1 + abs(ts-line.n_ts)*(tt+line.dt)
                 end
                 last_1 += line.freq
-            else
+            else # direction right to left; down to up; anti-clockwise
                 timetable[dep, line.n_ts+1] = 1
                 for ts in 1:line.n_ts
                     timetable[dep,ts] = last_0 + (ts-1)*(tt+line.dt)
@@ -44,9 +44,9 @@ function generate_timetable(ts_lines::Vector{Transitline}, start_t::Float64, end
     return max_duration
 end
 
-function generate_trainstop(ts_lines::Vector{Transitline}, max_opr_radius::Float64, folder::String)
+function generate_trainstop(ts_lines::Vector{Crossline}, max_opr_radius::Float64, folder::String)
     n_ts = sum(getfield.(ts_lines, :n_ts))
-    ts_coords = Array{Any}(undef, n_ts, 4) # create coordinates Array
+    ts_stops = Array{Any}(undef, n_ts, 4) # create coordinates Array
     opr_len, opr_width = 0.0, 0.0 # initilize operational area length and width
     last = 1
     for (i,line) in enumerate(ts_lines) 
@@ -54,32 +54,47 @@ function generate_trainstop(ts_lines::Vector{Transitline}, max_opr_radius::Float
         dist_ts = line.dist_ts
         n_ts_line = line.n_ts
         if !iseven(i) # Horizontal line
-            ts_coords[last:n_ts_line+last-1,1] .= [x for x in -((n_ts_line-1)*dist_ts/2):dist_ts:((n_ts_line-1)*dist_ts/2)]
-            ts_coords[last:n_ts_line+last-1,2] .= zeros(n_ts_line)
+            ts_stops[last:n_ts_line+last-1,1] .= [x for x in -((n_ts_line-1)*dist_ts/2):dist_ts:((n_ts_line-1)*dist_ts/2)]
+            ts_stops[last:n_ts_line+last-1,2] .= zeros(n_ts_line)
             opr_width = max(opr_width, 2 * max_opr_radius + (n_ts_line-1)*dist_ts)
         else # Vertical line
-            ts_coords[last:n_ts_line+last-1,1] .= zeros(n_ts_line)
-            ts_coords[last:n_ts_line+last-1,2] .= [x for x in -((n_ts_line-1)*dist_ts/2):dist_ts:((n_ts_line-1)*dist_ts/2)]
+            ts_stops[last:n_ts_line+last-1,1] .= zeros(n_ts_line)
+            ts_stops[last:n_ts_line+last-1,2] .= [x for x in -((n_ts_line-1)*dist_ts/2):dist_ts:((n_ts_line-1)*dist_ts/2)]
             opr_len = max(opr_len, 2 * max_opr_radius + (n_ts_line-1)*dist_ts)
         end
-        ts_coords[last:n_ts_line+last-1,3] .= i
-        ts_coords[last:n_ts_line+last-1,4] = [i == trans ? 1 : 0 for i in 1:n_ts_line]
+        ts_stops[last:n_ts_line+last-1,3] .= i
+        ts_stops[last:n_ts_line+last-1,4] = [i == trans ? 1 : 0 for i in 1:n_ts_line]
 
         last = last + n_ts_line
     end
 
     open("$folder/trainStops.csv", "w") do f
         writedlm(f, ["x" "y" "line" "transfer"], ",")
-        writedlm(f, ts_coords, ",")
+        writedlm(f, ts_stops, ",")
     end
 
+    ts_stops = DataFrame(ts_stops, [:x, :y, :line, :transfer])
+
     @info("Operational area: $opr_len*$opr_width km")
-    return ts_coords, opr_len, opr_width
+    return ts_stops, opr_len, opr_width
 end
 
-function generate_charger(ts_coords::Matrix, cgr_speed::Float64, folder::String)
-    cgr_info = zeros(1,3)
-    cgr_info[:,3] .= cgr_speed
+function read_transit_network(networkshape::Symbol, folder::String, params::Parameters)
+    ts_stops = CSV.read(folder * string(networkshape) * "-network.csv", DataFrame; header = true)
+    ts_coords = Matrix(ts_stops[:,[:x,:y]])
+    ts_dist_matrix = pairwise(Euclidean(), eachrow(ts_coords), eachrow(ts_coords))
+    opr_len = maximum(ts_stops.x) - minimum(ts_stops.x) + 2*params.max_opr_radius
+    opr_width = maximum(ts_stops.y) - minimum(ts_stops.y) + 2*params.max_opr_radius
+    return ts_stops, opr_len, opr_width
+end
+
+function generate_charger(ts_stops::DataFrame, chargers::Vector{Charger}, folder::String; at_ts = 0)
+    global cgr_info = zeros(length(chargers),3)
+    for i in 1:length(chargers)
+        cgr = chargers[i]
+        cgr_info[i,:] .= cgr.x, cgr.y, cgr.speed
+    end
+
     open("$folder/chargers.csv", "w") do f
         writedlm(f, ["x" "y" "charging_speed"], ",")
         writedlm(f, cgr_info, ",")
@@ -96,9 +111,9 @@ function generate_bus(n_c::Int64, buses::Vector{Bustype}, depots::Vector, folder
         for type in 1:n_types
             bus = buses[type]
             n_bus = Int(ceil(n_c/n_types))
+            depot = rand(1:n_depots, n_bus)
             for i in 1:n_bus
-                depot = rand(1:n_depots)
-                writedlm(f, Any[i+last type bus.capacity bus.v_bus bus.β bus.maxbattery depot], ',')
+                writedlm(f, Any[i+last type bus.capacity bus.v_bus bus.β bus.maxbattery depot[i]], ',')
             end
             last += n_bus
         end
@@ -108,10 +123,12 @@ end
 function depot_other(params::Parameters, max_duration::Float64, folder_name::String)
     # depot
     depots = hcat(params.depot...)
-    depots = hcat(1:size(depots)[1], depots)
+    depots = transpose(depots)
     open("$folder_name/depots.csv", "w") do f
         writedlm(f, ["x" "y"], ',')
-        writedlm(f, [depots[:,2] depots[:,3]], ',')
+        # writedlm(f, [depots[:,1] depots[:,2]], ',')
+        writedlm(f, depots, ',')
+
     end
 
     # Output other parameter
@@ -147,44 +164,99 @@ function foldername(upperfolder::String, n_line::Int64, n_c::Int64, n_depot::Int
     return folder_name, i
 end
 
-function graph(ts_coords, c_array, n_c, opr_width, cgr_coords, folder; flag_annotate = 1)
-    image = plot(title="Scenario",legendfontsize=7, legend=:true)
+function graph(ts_stops, ts_lines, c_array, n_c, opr_len, opr_width, cgr_coords, folder; flag_annotate = 1)
+    # image = plot(title="Scenario",legendfontsize=9, legend=:true)
+    image = plot(legendfontsize= 8, legend=:true)
     ylims!(-opr_width/2-1, opr_width/2+1)
-    xlims!(-opr_width/2-1, opr_width/2+1)
+    xlims!(-opr_len/2-1, opr_len/2+1)
     # plot customers
-    scatter!(c_array[:,1],c_array[:,2], label="origin", markershape=:circle, markercolor=:black, markersize=4)
-    scatter!(c_array[:,3],c_array[:,4], label="destination", markershape=:utriangle, markercolor=:phase, markersize=5, markerstrokewidth=0)
+    scatter!(c_array[:,1],c_array[:,2], label="Origin", markershape=:circle, markercolor=:black, markersize=4)
+    scatter!(c_array[:,3],c_array[:,4], label="Destination", markerstrokecolor=:black, marker = (:circle, 5,:white))
     for c in 1:n_c
-        annotate!(c_array[c,1]+0.2, c_array[c,2]+0.3, text("$c",10,:black))
-        annotate!(c_array[c,3]+0.2, c_array[c,4]+0.3, text("$c",10,:phase))
+        annotate!(c_array[c,1]+0.3, c_array[c,2]+0.3, text("$c",10,:black))
+        annotate!(c_array[c,3]+0.3, c_array[c,4]+0.3, text("$c",10,:phase))
     end
-    # plot transit stations and line
-    n_ts_each = size(ts_coords)[1] ÷ 2
-    plot!(ts_coords[1:n_ts_each,1], ts_coords[1:n_ts_each,2], color=:salmon, linewidth=4, label=false)
-    plot!(ts_coords[n_ts_each+1:end,1], ts_coords[n_ts_each+1:end,2], color=:salmon, linewidth=4, label=false)
-    scatter!(ts_coords[:,1], ts_coords[:,2], label="Transit stops", 
-    markershape=:star5, markercolor=:salmon, markersize=8, markerstrokewidth=0)
+
+    # plot depots
+    depots = hcat(params.depot...)
+    scatter!(depots[1,:], depots[2,:], label="Depot",  markershape=:diamond, markersize=6, markercolor=:black)
+
+    # plot charging stations
+    scatter!(cgr_coords[:,1], cgr_coords[:,2], label="Charger", markerstrokecolor=:black, markerstrokestyle=:dash, marker = (:diamond,6,:white))
+
+    # plot transit stations and lines
+    graph_ts(ts_stops, ts_lines; flag_annotate = flag_annotate)
+
+    # plot label
+    # plot!(xlabel= "x", ylabel = "y", fontsize=9)
+    annotate!(9, -9+0.8, text("km", 9))
+    annotate!(-9+0.5, 9, text("km", 9))
+    annotate!(-9-0.8, 0, text("y", 10))
+    annotate!(0, -9-1.1, text("x", 10))
+
+    # display(image)
+    display(image)
+    savefig(image, "$folder/fig.png")
+end
+
+function graph_ts(ts_stops, ts_lines; flag_annotate = 1)
+    image = plot!(dpi = 500)
+    image = plot!(legend=:bottomright)
+
+    # plot transit stations and lines
+    colors = [:darkolivegreen, :navy, :firebrick4]
+    n_line = length(ts_lines)
+    for i in 1:n_line
+        linecoords_x = ts_stops.x[ts_stops.line .== i]
+        linecoords_y = ts_stops.y[ts_stops.line .== i]
+        # plot!(linecoords_x, linecoords_y, color=colors[i], linewidth=4, label = "Line $i")
+        plot!(linecoords_x, linecoords_y, color=colors[i], linewidth=4, label = false)
+        if ts_lines[i].shape == :circle 
+            plot!([linecoords_x[1],linecoords_x[end]], [linecoords_y[1],linecoords_y[end]], color=colors[i], linewidth=4, label=false)
+        end
+    end
+    scatter!(ts_stops.x, ts_stops.y, label="Transit stops", markershape=:star5, markercolor=:black, markersize=8, markerstrokewidth=0)
     sym = collect('A':'Z')
-    if flag_annotate == 1
-        for ts in 1:size(ts_coords)[1]
-            if ts == n_ts_each + ceil(n_ts_each/2)
-                annotate!(ts_coords[ts,1]+0.7, ts_coords[ts,2]-0.4, text("($(sym[ts]))",10,:salmon))
+
+    if flag_annotate == 1 
+        # name transit stops by letters
+        count = zeros(size(ts_stops)[1])
+        plotted_coords = Vector{Tuple{Float64, Float64}}()
+        for ts in 1:size(ts_stops)[1]
+            c = colors[ts_stops.line[ts]]
+            if (ts_stops.x[ts],ts_stops.y[ts]) ∈ plotted_coords
+                pos = findfirst(x -> x == (ts_stops.x[ts],ts_stops.y[ts]), plotted_coords)
+                count[pos] += 1
+                if count[pos] >= 2
+                    annotate!(ts_stops.x[ts]+1.42, ts_stops.y[ts]+annotate_offset + 0.1, text("($(sym[ts]))",10, c)) 
+                else
+                    annotate!(ts_stops.x[ts]+0.82, ts_stops.y[ts]+annotate_offset + 0.1, text("($(sym[ts]))",10, c)) 
+                end
             else
-                annotate!(ts_coords[ts,1]+0.3, ts_coords[ts,2]-0.4, text("$(sym[ts])",10,:salmon))
+                annotate!(ts_stops.x[ts]+0.3, ts_stops.y[ts]+annotate_offset + 0.1, text("$(sym[ts])",10, c))
+                push!(plotted_coords, (ts_stops.x[ts],ts_stops.y[ts]))
             end 
         end
-    else
-        for ts in 1:size(ts_coords)[1]
-            if ts == n_ts_each + ceil(n_ts_each/2)
-                annotate!(ts_coords[ts,1]+0.7, ts_coords[ts,2]-0.4, text("($ts)",10,:salmon))
+    else 
+        # name transit stops by numbers
+        count = zeros(size(ts_stops)[1])
+        plotted_coords = Vector{Tuple{Float64, Float64}}()
+        for ts in 1:size(ts_stops)[1]
+            if (ts_stops.x[ts],ts_stops.y[ts]) ∈ plotted_coords
+                pos = findfirst(x -> x == (ts_stops.x[ts],ts_stops.y[ts]), plotted_coords)
+                count[pos] += 1
+                if count[pos] >= 2
+                    annotate!(ts_stops.x[ts]+1.4, ts_stops.y[ts]+annotate_offset, text("($ts)",10,colors[ts_stops[ts,3]]))
+                else
+                    annotate!(ts_stops.x[ts]+0.8, ts_stops.y[ts]+annotate_offset, text("($ts)",10,colors[ts_stops[ts,3]]))
+                end
+                
             else
-                annotate!(ts_coords[ts,1]+0.3, ts_coords[ts,2]-0.4, text("$ts",10,:salmon))
+                annotate!(ts_stops.x[ts]+0.3, ts_stops.y[ts]+annotate_offset, text("$ts",10,colors[ts_stops[ts,3]]))
+                push!(plotted_coords, (ts_stops.x[ts],ts_stops.y[ts]))
             end
         end
     end
-    # plot charging stations
-    scatter!(cgr_coords[:,1], cgr_coords[:,2], label="Charger", 
-                markershape=:utriangle, markercolor=:lightblue, markersize=4, markerstrokewidth=0)
+
     display(image)
-    savefig(image, "$folder/fig.png")
 end

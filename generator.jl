@@ -22,25 +22,45 @@ Generate synthetic data for a transportation system simulation.
 julia> generate(10, my_params)
 ```
 """
-function generate(n_c::Int64, params::Parameters; upperfolder = "cross/", replace = 1, location = random_spread)
-
-    folder_name, seed = foldername(upperfolder, length(params.ts_network), n_c, length(params.depot), length(params.buses), replace)
+function generate(n_c::Int64, ts_lines::Vector{Crossline}, params::Parameters, networkshape::Symbol; replace = 1, location = random_spread)
+    upperfolder = string(networkshape) * "/"
+    folder_name, seed = foldername(upperfolder, length(ts_lines), n_c, length(params.depot), length(params.buses), replace)
     Random.seed!(n_c * 10 + seed)
     v_bus = params.buses[1].v_bus/60
 
-    ts_coords, opr_len, opr_width = generate_trainstop(params.ts_network, params.max_opr_radius, folder_name)
-    max_duration = generate_timetable(params.ts_network, params.start_t, params.end_t, folder_name)
-    max_duration = max(max_duration+20, opr_len/v_bus) # define the operational time for customers' timewindow generation
-    cus_array = generate_customer(n_c, opr_len, opr_width, max_duration, params.detour_factor, v_bus, params.tw, ts_coords, folder_name, location)
-    cgr_coords = generate_charger(ts_coords, params.α, folder_name)
+    ts_stops, opr_len, opr_width = generate_trainstop(ts_lines, params.max_opr_radius, folder_name)
+    max_duration = generate_timetable(ts_lines, params.start_t, params.end_t, folder_name)
+    @info max_duration = max(max_duration+20, opr_len/v_bus) # define the operational time for customers' timewindow generation
+    cus_array = generate_customer(n_c, opr_len, opr_width, max_duration, params.detour_factor, v_bus, params.tw, ts_stops, folder_name, location)
+    cgr_coords = generate_charger(ts_stops, params.chargers, folder_name)
     generate_bus(n_c, params.buses, params.depot, folder_name)
     depot_other(params, max_duration, folder_name)
-    graph(ts_coords, cus_array, n_c, opr_width, cgr_coords, folder_name, flag_annotate = 0)
+    graph(ts_stops, ts_lines, cus_array, n_c, opr_len, opr_width, cgr_coords, folder_name, flag_annotate = 1)
 end
 
-function generate(n_c_list::Vector, params::Parameters; upperfolder = "cross/", replace = 1, location = random_spread)
+"""
+Generate demands foother network shape like "crossing, spoon and fork"
+"""
+function generate(n_c::Int64, ts_lines::Vector{Userline}, params::Parameters, networkshape::Symbol; replace = 1, location = random_spread)
+    upperfolder = string(networkshape) * "/"
+    folder_name, seed = foldername(upperfolder, length(ts_lines), n_c, length(params.depot), length(params.buses), replace)
+    Random.seed!(n_c * 10 + seed)
+    v_bus = params.buses[1].v_bus/60
+    ts_stops, opr_len, opr_width = read_transit_network(networkshape, upperfolder, params)
+    @info "Operation area is: $opr_len*$opr_width km"
+    # graph_ts(ts_stops, ts_lines, flag_annotate = 0)
+    max_duration = generate_timetable(ts_lines, params.start_t, params.end_t, folder_name)
+    max_duration = max(max_duration+20, opr_len/v_bus) # define the operational time for customers' timewindow generation
+    cus_array = generate_customer(n_c, opr_len, opr_width, max_duration, params.detour_factor, v_bus, params.tw, ts_stops, folder_name, location)
+    cgr_coords = generate_charger(ts_stops, params.chargers, folder_name)
+    generate_bus(n_c, params.buses, params.depot, folder_name)
+    depot_other(params, max_duration, folder_name)
+    graph(ts_stops, ts_lines, cus_array, n_c, opr_len, opr_width, cgr_coords, folder_name, flag_annotate = 1)
+end
+
+function generate(n_c_list::Vector, ts_lines::Vector, params::Parameters, networkshape::Symbol; replace = 1, location = random_spread)
     for n_c in n_c_list
-        generate(n_c, params; upperfolder = upperfolder, replace = replace, location = location)
+        generate(n_c, ts_lines, params, networkshape; replace = replace, location = location)
     end
 end
  
