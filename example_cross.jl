@@ -24,11 +24,13 @@ ts_lines = [Transitline(:straight, 3, 2, 5.0, 30.0, 60.0, 1.0),
             Transitline(:straight, 3, 2, 5.0, 30.0, 60.0, 1.0)]
 
 # define depots
-depot_coord = [[-2.5, 0], [2.5, 0]]
+depot_coord = [[-2.5, 2.5], [2.5, -2.5]]
+# depot_coord = [[0.0, 0.0]]
 
 # define chargers
 # charging speed in kWh/h: Europe DC charging speed https://alternative-fuels-observatory.ec.europa.eu/general-information/recharging-systems 
-chargers = [Charger(0.0, 0.0, 50.0)]
+chargers = [Charger(-2.5, -2.5, 50.0),
+            Charger(2.5, 2.5, 50.0)]
 
 # define all the parameters
 params = Parameters(
@@ -48,9 +50,11 @@ params = Parameters(
 )
 
 
+annotate_offset = 0.4
+
 # generate one instance
-generate(7, ts_lines, params, :cross; replace = 1, location = random_spread)
+generate(3, ts_lines, params, :cross; replace = 1, location = random_spread)
 
 # generate multiple instance
-# demand_list = collect(5:10)
+# demand_list = collect(1:1:4)
 # generate(demand_list, ts_lines, params, :cross)

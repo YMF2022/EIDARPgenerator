@@ -55,7 +55,7 @@ get_arcs(arc::NamedTuple{(:ts1, :ts2, :tt), Tuple{Int64, Int64, Float64}}) = (ar
 """
  Function to parse strings into appropriate data types
 """
-function parse_column(data::T) where T <:Union{Int, String, String3, Missing}
+function parse_column(data::T) where T <:Union{Int, String, InlineString, Missing}
     if ismissing(data) || isempty(data)
         return Int[]
     elseif typeof(data) == Int64
@@ -362,14 +362,20 @@ max_transfer_time = 10.0
 # network = "crossring"
 # folder = network * "/l3-c5-d2-bt2_test"
 
-network = "cross"
-folder = network * "/l2-c1-d2-bt2"
+# network = "scissor"
+# folder = network * "/l2-c0-d2-bt2"
 
 # network = "spoon"
 # folder = network * "/l2-c1-d2-bt2"
 
 # network = "fork"
-# folder = network * "/l3-c1-d2-bt2"
+# folder = network * "/l3-c4-d2-bt2"
+
+# network = "scissor_deps"
+# folder = network * "/l2-c0-d2-bt2_40dep"
+
+network = "cross_ts"
+folder = network * "/l2-c3-d2-bt2_6ts"
 
 ts_network = construct_ts_network(network, folder, max_transfer_time)
 # verify_ts_arcs(1,2)

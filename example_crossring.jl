@@ -23,9 +23,9 @@ buses = [
 
 # define train lines
 # ts_network = read_transit_network("crossring/")
-ts_lines = [Transitline(:straight, 5, 2.5, 30.0, 60.0, 1.0),
-            Transitline(:straight, 5, 2.5, 30.0, 60.0, 1.0),
-            Transitline(:circle, 9, 2.5, 30.0, 60.0, 1.0)]
+ts_lines = [Transitline(:straight, 5, 3.0, 30.0, 60.0, 1.0),
+            Transitline(:straight, 5, 3.0, 30.0, 60.0, 1.0),
+            Transitline(:circle, 9, 3.0, 30.0, 60.0, 1.0)]
 
 # define depot(s) coordinats
 depot_coord = [
@@ -58,7 +58,9 @@ params = Parameters(
 
 
 annotate_offset = 0.4
-generate(1, ts_lines, params, :crossring, replace = 1)
 
-demand_list = collect(5:10)
-generate(demand_list, ts_lines, params, :crossring)
+
+generate(3, ts_lines, params, :crossring, replace = 1)
+
+# demand_list = collect(2:2:20)
+# generate(demand_list, ts_lines, params, :crossring)

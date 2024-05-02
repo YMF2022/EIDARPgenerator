@@ -165,34 +165,43 @@ function foldername(upperfolder::String, n_line::Int64, n_c::Int64, n_depot::Int
 end
 
 function graph(ts_stops, ts_lines, c_array, n_c, opr_len, opr_width, cgr_coords, folder; flag_annotate = 1)
-    image = plot(title="Scenario",legendfontsize=7, legend=:true)
+    # image = plot(title="Scenario",legendfontsize=9, legend=:true)
+    image = plot(legendfontsize= 8, legend=:true)
     ylims!(-opr_width/2-1, opr_width/2+1)
     xlims!(-opr_len/2-1, opr_len/2+1)
     # plot customers
-    scatter!(c_array[:,1],c_array[:,2], label="origin", markershape=:circle, markercolor=:black, markersize=4)
-    scatter!(c_array[:,3],c_array[:,4], label="destination", markershape=:utriangle, markercolor=:phase, markersize=5, markerstrokewidth=0)
+    scatter!(c_array[:,1],c_array[:,2], label="Origin", markershape=:circle, markercolor=:black, markersize=4)
+    scatter!(c_array[:,3],c_array[:,4], label="Destination", markerstrokecolor=:black, marker = (:circle, 5,:white))
     for c in 1:n_c
-        annotate!(c_array[c,1]+0.2, c_array[c,2]+0.3, text("$c",10,:black))
-        annotate!(c_array[c,3]+0.2, c_array[c,4]+0.3, text("$c",10,:phase))
+        annotate!(c_array[c,1]+0.3, c_array[c,2]+0.3, text("$c",10,:black))
+        annotate!(c_array[c,3]+0.3, c_array[c,4]+0.3, text("$c",10,:phase))
     end
-
-    # plot charging stations
-    scatter!(cgr_coords[:,1], cgr_coords[:,2], label="Charger", 
-    markershape=:diamond, markercolor=:lightblue, markersize= 4, markerstrokewidth=0)
 
     # plot depots
     depots = hcat(params.depot...)
-    scatter!(depots[1,:], depots[2,:], label="depots", markerstrokecolor=:blue, marker = (:diamond,4,:white))
+    scatter!(depots[1,:], depots[2,:], label="Depot",  markershape=:diamond, markersize=6, markercolor=:black)
+
+    # plot charging stations
+    scatter!(cgr_coords[:,1], cgr_coords[:,2], label="Charger", markerstrokecolor=:black, markerstrokestyle=:dash, marker = (:diamond,6,:white))
 
     # plot transit stations and lines
     graph_ts(ts_stops, ts_lines; flag_annotate = flag_annotate)
 
+    # plot label
+    # plot!(xlabel= "x", ylabel = "y", fontsize=9)
+    annotate!(9, -9+0.8, text("km", 9))
+    annotate!(-9+0.5, 9, text("km", 9))
+    annotate!(-9-0.8, 0, text("y", 10))
+    annotate!(0, -9-1.1, text("x", 10))
+
     # display(image)
+    display(image)
     savefig(image, "$folder/fig.png")
 end
 
 function graph_ts(ts_stops, ts_lines; flag_annotate = 1)
-    image = plot!(title="Scenario",legendfontsize=7, legend=:true)
+    image = plot!(dpi = 500)
+    image = plot!(legend=:bottomright)
 
     # plot transit stations and lines
     colors = [:darkolivegreen, :navy, :firebrick4]
@@ -200,33 +209,48 @@ function graph_ts(ts_stops, ts_lines; flag_annotate = 1)
     for i in 1:n_line
         linecoords_x = ts_stops.x[ts_stops.line .== i]
         linecoords_y = ts_stops.y[ts_stops.line .== i]
-        plot!(linecoords_x, linecoords_y, color=colors[i], linewidth=4, label=false)
-        # plot!(linecoords_x, linecoords_y, color=:gray, linewidth=4, label=false)
+        # plot!(linecoords_x, linecoords_y, color=colors[i], linewidth=4, label = "Line $i")
+        plot!(linecoords_x, linecoords_y, color=colors[i], linewidth=4, label = false)
         if ts_lines[i].shape == :circle 
             plot!([linecoords_x[1],linecoords_x[end]], [linecoords_y[1],linecoords_y[end]], color=colors[i], linewidth=4, label=false)
         end
     end
-    scatter!(ts_stops.x, ts_stops.y, label="Transit stops", markershape=:star5, markercolor=:gray27, markersize=8, markerstrokewidth=0)
+    scatter!(ts_stops.x, ts_stops.y, label="Transit stops", markershape=:star5, markercolor=:black, markersize=8, markerstrokewidth=0)
     sym = collect('A':'Z')
 
     if flag_annotate == 1 
         # name transit stops by letters
+        count = zeros(size(ts_stops)[1])
         plotted_coords = Vector{Tuple{Float64, Float64}}()
         for ts in 1:size(ts_stops)[1]
             c = colors[ts_stops.line[ts]]
             if (ts_stops.x[ts],ts_stops.y[ts]) ∈ plotted_coords
-                annotate!(ts_stops.x[ts]+0.8, ts_stops.y[ts]+annotate_offset, text("($(sym[ts]))",10, c)) 
+                pos = findfirst(x -> x == (ts_stops.x[ts],ts_stops.y[ts]), plotted_coords)
+                count[pos] += 1
+                if count[pos] >= 2
+                    annotate!(ts_stops.x[ts]+1.42, ts_stops.y[ts]+annotate_offset + 0.1, text("($(sym[ts]))",10, c)) 
+                else
+                    annotate!(ts_stops.x[ts]+0.82, ts_stops.y[ts]+annotate_offset + 0.1, text("($(sym[ts]))",10, c)) 
+                end
             else
-                annotate!(ts_stops.x[ts]+0.3, ts_stops.y[ts]+annotate_offset, text("$(sym[ts])",10, c))
+                annotate!(ts_stops.x[ts]+0.3, ts_stops.y[ts]+annotate_offset + 0.1, text("$(sym[ts])",10, c))
                 push!(plotted_coords, (ts_stops.x[ts],ts_stops.y[ts]))
             end 
         end
     else 
         # name transit stops by numbers
+        count = zeros(size(ts_stops)[1])
         plotted_coords = Vector{Tuple{Float64, Float64}}()
         for ts in 1:size(ts_stops)[1]
             if (ts_stops.x[ts],ts_stops.y[ts]) ∈ plotted_coords
-                annotate!(ts_stops.x[ts]+0.8, ts_stops.y[ts]+annotate_offset, text("($ts)",10,colors[ts_stops[ts,3]]))
+                pos = findfirst(x -> x == (ts_stops.x[ts],ts_stops.y[ts]), plotted_coords)
+                count[pos] += 1
+                if count[pos] >= 2
+                    annotate!(ts_stops.x[ts]+1.4, ts_stops.y[ts]+annotate_offset, text("($ts)",10,colors[ts_stops[ts,3]]))
+                else
+                    annotate!(ts_stops.x[ts]+0.8, ts_stops.y[ts]+annotate_offset, text("($ts)",10,colors[ts_stops[ts,3]]))
+                end
+                
             else
                 annotate!(ts_stops.x[ts]+0.3, ts_stops.y[ts]+annotate_offset, text("$ts",10,colors[ts_stops[ts,3]]))
                 push!(plotted_coords, (ts_stops.x[ts],ts_stops.y[ts]))

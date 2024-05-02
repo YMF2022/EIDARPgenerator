@@ -23,15 +23,15 @@ buses = [
 
 # define train lines
 # ts_network = read_transit_network("crossring/")
-ts_lines = [Transitline(:straight, 3, 5.0, 30.0, 60.0, 1.0),
-            Transitline(:straight, 5, 5.0, 30.0, 60.0, 1.0)]
+ts_lines = [Transitline(:straight, 4, 5.0, 30.0, 60.0, 1.0),
+            Transitline(:straight, 4, 5.0, 30.0, 60.0, 1.0)]
 
 # define depots
-depot_coord = [[-3.0, -3.0], [3.0, 3.0]]
+depot_coord = [[-3.0, 3.0], [3.0, -3.0]]
 
 # define chargers
-chargers = [Charger(0.0, 0.0, 50.0),  
-            Charger(0.0, 0.0, 100.0)] # charging speed in kWh/h: Europe DC charging speed https://alternative-fuels-observatory.ec.europa.eu/general-information/recharging-systems 
+chargers = [Charger(3.0, 3.0, 50.0),  
+            Charger(-3.0, -3.0, 100.0)] # charging speed in kWh/h: Europe DC charging speed https://alternative-fuels-observatory.ec.europa.eu/general-information/recharging-systems 
 
 # define all the parameters
 params = Parameters(
@@ -52,7 +52,7 @@ params = Parameters(
 
 annotate_offset = 0.4
 
-generate(10, ts_lines, params, :scissor)
+generate(0, ts_lines, params, :scissor; replace = 1)
 
-# demand_list = collect(5:10)
+# demand_list = collect(6:2:22)
 # generate(demand_list, ts_lines, params, :scissor)

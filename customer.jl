@@ -20,7 +20,7 @@ function generate_customer(n_c::Int64, opr_len, opr_width, operation_time, detou
         dep_late = dep_ear + tw
         arr_late = dep_late + max_tt[c]
         max_iteration = 10000; count = 0
-        while (dep_ear + tw + max_tt[c] > operation_time) && any(x -> x > dep_late, time_to_depot) && (count < max_iteration)
+        while ((dep_ear + tw + max_tt[c] > operation_time) || any(x -> x > dep_late, time_to_depot)) && (count < max_iteration)
             count += 1
             dep_ear = operation_time * rand()
             dep_late = dep_ear + tw
